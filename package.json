@@ -5,7 +5,8 @@
   "scripts": {
     "build": "tsc -d -p .",
     "lint": "tslint -c tslint.json -p . -t stylish",
-    "run": "node build/main.js"
+    "run_js": "node build/main.js",
+    "run_ts": "ts-node src/main.ts"
   },
   "dependencies": {
     "body-parser": "~1.18.2",
