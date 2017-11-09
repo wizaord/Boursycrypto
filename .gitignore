@@ -109,3 +109,4 @@ typings/
 # dotenv environment variables file
 .env
 /build/
+/API_KEY.txt
