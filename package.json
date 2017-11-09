@@ -9,7 +9,6 @@
     "run_ts": "ts-node src/main.ts"
   },
   "dependencies": {
-    "@types/js-yaml": "^3.9.1",
     "@types/yamljs": "^0.2.30",
     "body-parser": "~1.18.2",
     "cookie-parser": "~1.4.3",
@@ -19,7 +18,8 @@
     "jade": "~1.11.0",
     "morgan": "~1.9.0",
     "rxjs": "^5.5.2",
-    "serve-favicon": "~2.4.5"
+    "serve-favicon": "~2.4.5",
+    "yamljs": "^0.3.0"
   },
   "devDependencies": {
     "ts-node": "^3.3.0",

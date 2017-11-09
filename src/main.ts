@@ -1,30 +1,30 @@
 import * as GTT from 'gdax-trading-toolkit';
-import program  = require('commander');
 import { GDAX_API_URL, GDAX_WS_FEED, GDAXFeed, GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
 import { LiveOrderbook, TradeMessage } from 'gdax-trading-toolkit/build/src/core';
 import { getSubscribedFeeds } from 'gdax-trading-toolkit/build/src/factories/gdaxFactories';
+import { ConfService} from './services/confService';
 
 // create the default logger
 const logger = GTT.utils.ConsoleLoggerFactory();
 
+// chargement du fichier de configuration
+const confService = new ConfService('application.yml');
+
 // specify the PRODUCT to connect
 const products: string[] = ['BTC-EUR', 'ETH-EUR', 'LTC-EUR'];
-
-// console.log('Chargement du fichier de configuration');
-// const configurationFile = jsyaml.load('API_KEY.txt');
-// console.log(JSON.stringify(configurationFile));
 
 const options: GDAXFeedConfig = {
     logger: logger,
     auth: {
-        key: program.key || process.env.GDAX_KEY,
-        secret: program.secret || process.env.GDAX_SECRET,
-        passphrase: program.pass || process.env.GDAX_PASSPHRASE}, // use public feed
+        key: confService.configurationFile.application.apikey,
+        secret: confService.configurationFile.application.apisecretkey,
+        passphrase: null,
+    },
     channels: null,
     wsUrl: GDAX_WS_FEED,
     apiUrl: GDAX_API_URL
 };
-console.log(JSON.stringify(program));
+
 logger.log('info', 'Using configuration ' + JSON.stringify(options));
 
 const bookBTCEUR = new LiveOrderbook({product: 'BTC-EUR', logger: logger});
