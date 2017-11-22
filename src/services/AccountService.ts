@@ -14,7 +14,7 @@ export class AccountService {
     private money: BigJS;
     private btc: BigJS;
     private lastFill: Fill;
-    private orderInProgress: boolean;
+    private _orderInProgress: boolean;
     // private lastOrder: LiveOrder;
 
     public constructor(options: GDAXFeedConfig, confService: ConfService) {
@@ -53,7 +53,7 @@ export class AccountService {
             // on ne prend que l'ordre le plus recent
             const lastFill = fills.sort((a, b) => a.created_at < b.created_at ? 1 : 0)[0];
             this.lastFill = lastFill;
-            this.orderInProgress = this.lastFill.side === 'buy';
+            this._orderInProgress = this.lastFill.side === 'buy';
             this.logLastFill();
             this.logMode();
         });
@@ -73,7 +73,7 @@ export class AccountService {
     public logMode(): void {
         console.log(printSeparator());
         console.log('MODE : ')
-        if (this.orderInProgress) {
+        if (this._orderInProgress) {
             console.log('Your last order is a BUY order => SELL MODE');
         } else {
             console.log('Your last order is a SELL order => BUY MODE');
@@ -106,5 +106,9 @@ export class AccountService {
             });
             console.log(`You have ${orders.length} orders on the book for a total of ${total.toFixed(1)} BTC`);
         });
+    }
+
+    get orderInProgress(): boolean {
+        return this._orderInProgress;
     }
 }
