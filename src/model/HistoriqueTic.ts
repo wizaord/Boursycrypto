@@ -18,3 +18,9 @@ export interface HistoriqueCompute {
     nbBuy: number;
     nbSell: number;
 }
+
+export interface Tendance {
+    type: string;
+    evolPrice: number;
+    evolPourcentage: number;
+}

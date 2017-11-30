@@ -49,6 +49,7 @@ export class LiveOrderBookHandleService {
     public handleTradeMessage(trade: TradeMessage) {
         this.historicService.saveTradeMessage(trade);
         const buyOrderHasBeenPassed = this.accountService.orderInProgress;
+
         if (buyOrderHasBeenPassed) {
             this.logger.log('info', 'Place <' + trade.productId + '>, price => ' + trade.price);
         } else {

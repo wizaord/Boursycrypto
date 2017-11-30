@@ -1,20 +1,24 @@
 import { TradeMessage } from 'gdax-trading-toolkit/build/src/core';
-import { HistoriqueCompute, HistoriqueTic } from '../model/HistoriqueTic';
+import { HistoriqueCompute, HistoriqueTic, Tendance } from '../model/HistoriqueTic';
 import * as BigNumber from 'bignumber.js';
 import Collections = require('typescript-collections');
 import { ConfService } from './ConfService';
+import { printSeparator } from 'gdax-trading-toolkit/build/src/utils';
 
 export class HistoriqueService {
 
+    public static _instance: HistoriqueService;
     private ticLst: Collections.Queue<HistoriqueTic>;
     private computeLst: Collections.LinkedList<HistoriqueCompute>;
-    public static _instance: HistoriqueService;
+    private computeDelay: number;
 
     public constructor(confService: ConfService) {
         HistoriqueService._instance = this;
         this.ticLst = new Collections.Queue();
         this.computeLst = new Collections.LinkedList();
-        setInterval(computeTicLst, confService.configurationFile.application.historique.computeDely);
+        this.computeDelay = confService.configurationFile.application.historique.computeDelay;
+        // ajout d'un timer pour calculer la tendance toutes les XX minutes configurables
+        setInterval(computeTicLst, this.computeDelay);
     }
 
     /**
@@ -24,16 +28,12 @@ export class HistoriqueService {
      * @param {TradeMessage} tradeMessage
      */
     public saveTradeMessage(tradeMessage: TradeMessage): void {
-        // DO SOMETHING
         const tic = this.transformInTic(tradeMessage);
-        // add in list
         this.ticLst.add(tic);
-        // console.log('Historique receive message');
-        // console.log(JSON.stringify(tradeMessage));
     }
 
     public computeTicLst(): void {
-        const computeTic: HistoriqueCompute = {
+        let computeTic: HistoriqueCompute = {
             generatedDate: new Date(),
             nbTic: 0,
             averagePrice: 0,
@@ -44,23 +44,110 @@ export class HistoriqueService {
             nbSell: 0
         };
         let totalPrice = 0;
-        let tic;
-        while (tic = this.ticLst.dequeue()) {
-            computeTic.nbTic++;
-            computeTic.totalSize += tic.size.toNumber();
-            (tic.isBuy) ? computeTic.nbBuy += 1 : computeTic.nbSell += 1;
-            if (computeTic.minPrice > tic.price.toNumber() || computeTic.minPrice === 0) {
-                computeTic.minPrice = tic.price.toNumber();
+        let tic
+        if (this.ticLst.size() === 0) {
+            // just copy the last tic if exist. If not do nothing
+            if (this.computeLst.size() === 0) {
+                console.log('No order passed. Wait again one minute');
+                return;
             }
-            if (computeTic.maxPrice < tic.price.toNumber() || computeTic.maxPrice === 0) {
-                computeTic.maxPrice = tic.price.toNumber();
-            }
+            computeTic = this.computeLst.last();
+        } else {
+            while (tic = this.ticLst.dequeue()) {
+                computeTic.nbTic++;
+                computeTic.totalSize += tic.size.toNumber();
+                (tic.isBuy) ? computeTic.nbBuy += 1 : computeTic.nbSell += 1;
+                if (computeTic.minPrice > tic.price.toNumber() || computeTic.minPrice === 0) {
+                    computeTic.minPrice = tic.price.toNumber();
+                }
+                if (computeTic.maxPrice < tic.price.toNumber() || computeTic.maxPrice === 0) {
+                    computeTic.maxPrice = tic.price.toNumber();
+                }
 
-            totalPrice += tic.price.toNumber();
+                totalPrice += tic.price.toNumber();
+            }
+            computeTic.averagePrice = totalPrice / computeTic.nbTic;
         }
-        computeTic.averagePrice = totalPrice / computeTic.nbTic;
+
         this.computeLst.add(computeTic);
-        console.log(JSON.stringify(computeTic));
+        console.log('Generate new stat' + JSON.stringify(computeTic));
+
+        // calcul des tendances
+        const tendance2min = this.getLast2MinutesTendances();
+        const tendance10min = this.getLast10MinutesTendances();
+
+
+        console.log(printSeparator());
+        console.log('Date : ' + new Date());
+        console.log('Cours now : ' + JSON.stringify(this.computeLst.last()));
+        console.log(printSeparator());
+        console.log('Tendance 2 minutes : ' + JSON.stringify(tendance2min));
+        console.log(printSeparator());
+        console.log('Tendance 10 minutes : ' + JSON.stringify(tendance10min));
+        console.log(printSeparator());
+    }
+
+    /**
+     * Le calcul d'une tendance est simple.
+     * On prend la date de Debut, on prend la date de fin et on compare
+     * @param {Date} beginDate
+     * @param {Date} endDate
+     * @returns {number}
+     */
+    public calculeTendance(beginDate: Date, endDate?: Date): Tendance {
+        if (endDate == null || endDate === undefined) {
+            endDate = new Date();
+        }
+
+        if (this.computeLst.size() < 2) {
+            console.log('Pas assez de valeur');
+            return null;
+        }
+
+        const hCBegin = this.getComputeTic(beginDate);
+        const hCEnd = this.getComputeTic(endDate);
+
+        if (hCBegin == null || hCBegin === undefined) {
+            console.log('hcbegin not found : ' + JSON.stringify(beginDate));
+            return null;
+        }
+        if (hCEnd == null || hCEnd === undefined) {
+            console.log('hcEnd not found : ' + JSON.stringify(endDate));
+            return null;
+        }
+
+        const tendance: Tendance = {
+            evolPrice: 0,
+            evolPourcentage: 0,
+            type: ''
+        };
+        tendance.evolPrice = hCEnd.averagePrice - hCBegin.averagePrice;
+        // (Valeur d’arrivée – Valeur de départ) / Valeur de départ x 100
+        tendance.evolPourcentage = (hCEnd.averagePrice - hCBegin.averagePrice) / hCBegin.averagePrice * 100;
+        tendance.type = (tendance.evolPrice > 0) ? 'HAUSSE' : 'BAISSE';
+        return tendance;
+    }
+
+    /**
+     * permet de recuperer la tendance sur les 10 dernières minutes
+     * @returns {number}
+     */
+    public getLast10MinutesTendances(): Tendance {
+        const currentDate = new Date();
+        const lastMinute = this.computeLst.last().generatedDate;
+        const last10MinuDate = new Date(currentDate.getTime() - 10 * 60000);
+        return this.calculeTendance(last10MinuDate, lastMinute);
+    }
+
+    /**
+     * permet de recuperer la tendance sur les 2 dernières minutes
+     * @returns {number}
+     */
+    public getLast2MinutesTendances(): Tendance {
+        const currentDate = new Date();
+        const lastMinute = this.computeLst.last().generatedDate;
+        const last2MinuDate = new Date(currentDate.getTime() - 2 * 60000);
+        return this.calculeTendance(last2MinuDate, lastMinute);
     }
 
     private transformInTic(tradeMsg: TradeMessage): HistoriqueTic {
@@ -70,6 +157,18 @@ export class HistoriqueService {
             size: new BigNumber(tradeMsg.size),
             isBuy: (tradeMsg.side === 'buy') ? true : false
         };
+    }
+
+    private getComputeTic(date: Date): HistoriqueCompute {
+        let compteDate = null;
+        this.computeLst.forEach((a) => {
+            const diffTime = a.generatedDate.getTime() - date.getTime();
+            // console.log('Compare ' + date.getTime() + ' with tictic ' + a.generatedDate.getTime() + ' - ' + JSON.stringify(a));
+            if (diffTime >= 0 && diffTime <= this.computeDelay) {
+                compteDate = a;
+            }
+        });
+        return compteDate;
     }
 }
 
