@@ -151,6 +151,7 @@ export class HistoriqueService {
     }
 
     private transformInTic(tradeMsg: TradeMessage): HistoriqueTic {
+        console.log('Je suis sur le master');
         return {
             receiveDate: tradeMsg.time,
             price: new BigNumber(tradeMsg.price),
