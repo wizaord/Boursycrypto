@@ -5,6 +5,8 @@ import { getSubscribedFeeds } from 'gdax-trading-toolkit/build/src/factories/gda
 import { ConfService } from './services/confService';
 import { AccountService } from './services/AccountService';
 import { LiveOrderBookHandleService } from './services/LiveOrderBookHandleService';
+import { HistoriqueService } from './services/HistoriqueService';
+import { TradeService } from './services/TradeService';
 
 // Init objects
 const confService = new ConfService('application.yml');
@@ -23,8 +25,10 @@ const options: GDAXFeedConfig = {
 logger.log('info', 'Using configuration ' + JSON.stringify(options));
 const products: string[] = [confService.configurationFile.application.product.name];
 const accountService = new AccountService(options, confService);
-
-const bookBTC = new LiveOrderBookHandleService(options, confService, accountService);
+const historiqueService = new HistoriqueService(confService);
+const tradeService = new TradeService();
+historiqueService.registerTradeService(tradeService);
+const bookBTC = new LiveOrderBookHandleService(options, confService, accountService, historiqueService);
 
 // -------------------------------------------
 // initialise services
