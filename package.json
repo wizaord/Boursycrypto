@@ -17,6 +17,7 @@
     "gdax-trading-toolkit": "^0.1.29",
     "jade": "~1.11.0",
     "morgan": "~1.9.0",
+    "nativescript-email": "^1.5.1",
     "rxjs": "^5.5.2",
     "serve-favicon": "~2.4.5",
     "typescript-collections": "^1.2.5",

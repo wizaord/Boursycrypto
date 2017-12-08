@@ -51,7 +51,12 @@ export class AccountService {
         const apiCall = this.gdaxExchangeApi.authCall('GET', `/fills`, {});
         this.gdaxExchangeApi.handleResponse<Fill[]>(apiCall, null).then((fills: Fill[]) => {
             // on ne prend que l'ordre le plus recent
-            const lastFill = fills.sort((a, b) => a.product_id === this.confService.configurationFile.application.product.name && a.created_at < b.created_at ? 1 : 0)[0];
+
+            const lastFill = fills.filter((f) => f.product_id === this.confService.configurationFile.application.product.name)
+                .sort((a, b) => {
+                    return (a.trade_id - b.trade_id) * -1;
+                })[0];
+
             this.lastFill = lastFill;
             this._orderInProgress = this.lastFill.side === 'buy';
             this.logLastFill();
@@ -66,13 +71,13 @@ export class AccountService {
         console.log(`buy/sell : ${this.lastFill.side}`);
         console.log(`Cost :     ${padfloat(this.lastFill.fee, 8, 4)} €`);
         console.log(`Price :    ${padfloat(this.lastFill.price, 8, 4)} €`);
-        console.log(`Size :     ${padfloat(this.lastFill.size, 8, 4)} BTC`);
+        console.log(`Size :     ${padfloat(this.lastFill.size, 8, 4)} ${this.confService.configurationFile.application.product.type}`);
         console.log(printSeparator());
     }
 
     public logMode(): void {
         console.log(printSeparator());
-        console.log('MODE : ')
+        console.log('MODE : ');
         if (this._orderInProgress) {
             console.log('Your last order is a BUY order => SELL MODE');
         } else {

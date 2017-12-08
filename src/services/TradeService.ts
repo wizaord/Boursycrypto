@@ -10,7 +10,7 @@ export class TradeService {
         this.historiqueSrv = HistoriqueService._instance;
     }
 
-    public checkTendance() {
+    public tradeNow() {
         // calcul des tendances
         const tendance2min = this.getLast2MinutesTendances();
         const tendance10min = this.getLast10MinutesTendances();
@@ -20,10 +20,10 @@ export class TradeService {
         console.log(printSeparator());
         console.log('Date : ' + new Date());
         console.log('Cours now : ' + JSON.stringify(this.historiqueSrv.getLastComputeHisto()));
-        console.log('Tendance 2 minutes : ' + JSON.stringify(tendance2min));
-        console.log('Tendance 10 minutes : ' + JSON.stringify(tendance10min));
-        console.log('Tendance 30 minutes : ' + JSON.stringify(tendance30min));
-        console.log('Tendance 60 minutes : ' + JSON.stringify(tendance60min));
+        console.log('Tendance 2 minutes  : ' + this.convertTendanceInStr(tendance2min));
+        console.log('Tendance 10 minutes : ' + this.convertTendanceInStr(tendance10min));
+        console.log('Tendance 30 minutes : ' + this.convertTendanceInStr(tendance30min));
+        console.log('Tendance 60 minutes : ' + this.convertTendanceInStr(tendance60min));
         console.log(printSeparator());
     }
 
@@ -56,10 +56,11 @@ export class TradeService {
             type: '',
             volumeEchangee: 0
         };
+
         tendance.evolPrice = lastElement.averagePrice - oldElement.averagePrice;
         // (Valeur d’arrivée – Valeur de départ) / Valeur de départ x 100
         tendance.evolPourcentage = (lastElement.averagePrice - oldElement.averagePrice) / oldElement.averagePrice * 100;
-        tendance.type = (tendance.evolPrice > 0) ? 'HAUSSE' : 'BAISSE';
+        tendance.type = (tendance.evolPrice >= 0) ? 'HAUSSE' : 'BAISSE';
         histoComputeLst.forEach((historiqueCompute) => tendance.volumeEchangee += historiqueCompute.volumeEchange);
         return tendance;
     }
@@ -109,4 +110,7 @@ export class TradeService {
         return this.calculeTendance(last2MinuDate, lastMinute);
     }
 
+    private convertTendanceInStr(tendance: Tendance): string {
+        return `type: ${tendance.type} => evolutionPrix: ${tendance.evolPrice.toFixed(2)}, pourcentage: ${tendance.evolPourcentage.toFixed(2)}, volume: ${tendance.volumeEchangee.toFixed(2)}`;
+    }
 }

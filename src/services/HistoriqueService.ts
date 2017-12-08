@@ -57,7 +57,8 @@ export class HistoriqueService {
             }
             computeTic = this._computeLst.last();
         } else {
-            while (tic = this.ticLst.dequeue()) {
+            while (this.ticLst.size() !== 0) {
+                tic = this.ticLst.dequeue();
                 computeTic.nbTic++;
                 computeTic.volumeEchange += tic.volumeEchange.toNumber();
                 (tic.isBuy) ? computeTic.nbBuy += 1 : computeTic.nbSell += 1;
@@ -75,9 +76,8 @@ export class HistoriqueService {
 
         this._computeLst.add(computeTic);
         // console.log('Generate new stat' + JSON.stringify(computeTic));
-        this.tradeService.checkTendance();
+        this.tradeService.tradeNow();
     }
-
 
     public getLastComputeHisto(): HistoriqueCompute {
         return this._computeLst.last();
