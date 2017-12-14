@@ -1,13 +1,16 @@
 import { Tendance } from '../model/HistoriqueTic';
 import { printSeparator } from 'gdax-trading-toolkit/build/src/utils';
 import { HistoriqueService } from './HistoriqueService';
+import {  GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
 
 export class TradeService {
 
     private historiqueSrv: HistoriqueService;
+    // private gdaxExchangeApi: GDAXExchangeAPI;
 
-    public constructor() {
+    public constructor(options: GDAXFeedConfig) {
         this.historiqueSrv = HistoriqueService._instance;
+        // this.gdaxExchangeApi = new GDAXExchangeAPI(options);
     }
 
     public tradeNow() {
@@ -113,4 +116,52 @@ export class TradeService {
     private convertTendanceInStr(tendance: Tendance): string {
         return `type: ${tendance.type} => evolutionPrix: ${tendance.evolPrice.toFixed(2)}, pourcentage: ${tendance.evolPourcentage.toFixed(2)}, volume: ${tendance.volumeEchangee.toFixed(2)}`;
     }
+
+    // /**
+    //  * Cancel all orders
+    //  */
+    // private cancelAllOrders(): void {
+    //     console.log('called cancel all orders');
+    //     this.gdaxExchangeApi.cancelAllOrders(null).then((orders: string[]) => {
+    //         orders.forEach((order: string) => {
+    //             console.log(order);
+    //         });
+    //         console.log(printSeparator());
+    //     }).catch(logError);
+    // }
+    //
+    // private placeLimitOrder(limit: number): void {
+    //     // TODO : to implement
+    // }
+    //
+    // private placeMarketOrder(limit: number): void {
+    //     // TODO : to implement
+    //     // const [side, size, price] = program.newLimitOrder.split(',');
+    //     // const params: PlaceOrderMessage = {
+    //     //     time: new Date(),
+    //     //     clientId: null,
+    //     //     side: side,
+    //     //     size: size,
+    //     //     type: 'market',
+    //     //     productId: program.product,
+    //     //     price: price,
+    //     //     orderType: 'limit'
+    //     // };
+    //     // const msg = `Limit ${params.side} order for ${params.size} at ${params.price}`;
+    //     // gdaxApi.placeOrder(params).then((result: LiveOrder) => {
+    //     //     console.log(printSeparator());
+    //     //     console.log(msg);
+    //     //     console.log(result);
+    //     // }).catch(logError);
+    // }
 }
+
+//
+// function logError(err: any) {
+//     console.error(printSeparator());
+//     console.error('Error: ' + err.message);
+//     if (err && (err.response && err.response.error)) {
+//         console.error(err.response.error.message);
+//     }
+//     console.error(printSeparator());
+// }

@@ -56,6 +56,8 @@ export class HistoriqueService {
                 return;
             }
             computeTic = this._computeLst.last();
+            computeTic.generatedDate = new Date();
+            computeTic.nbSell = computeTic.nbBuy = computeTic.nbTic = computeTic.volumeEchange = 0;
         } else {
             while (this.ticLst.size() !== 0) {
                 tic = this.ticLst.dequeue();
