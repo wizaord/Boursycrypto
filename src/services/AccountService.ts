@@ -4,18 +4,16 @@ import { padfloat, printSeparator } from 'gdax-trading-toolkit/build/src/utils';
 import { Big, BigJS } from 'gdax-trading-toolkit/build/src/lib/types';
 import { LiveOrder } from 'gdax-trading-toolkit/build/src/lib';
 import { ConfService } from './ConfService';
-import { Fill } from '../model/fill';
+import { Fill, GDAXFill, GDAXOrder } from '../model/fill';
 
 export class AccountService {
 
     private gdaxExchangeApi: GDAXExchangeAPI;
     private confService: ConfService;
 
-    private money: BigJS;
-    private btc: BigJS;
+    private money: BigJS;          // argent disponible sur le compte
+    private btc: BigJS;            // Coin disponible sur le compte
     private lastFill: Fill;
-    private _orderInProgress: boolean;
-    // private lastOrder: LiveOrder;
 
     public constructor(options: GDAXFeedConfig, confService: ConfService) {
         this.gdaxExchangeApi = new GDAXExchangeAPI(options);
@@ -24,7 +22,9 @@ export class AccountService {
 
     public refreshFromGDAX(): void {
         this.loadBalance();
-        this.loadLastFill();
+        this.loadAndLogLastFill();
+        this.loadAndLogLastOrder();
+        this.showOrders();
     }
 
     public loadBalance(): void {
@@ -47,20 +47,47 @@ export class AccountService {
         console.log(printSeparator());
     }
 
-    public loadLastFill(): void {
+    public loadAndLogLastFill(): void {
+        this.loadLastFill()
+            .then((value) => {
+                this.lastFill = value;
+                this.logLastFill();
+                this.logMode();
+            });
+    }
+
+    public loadLastFill(): Promise<Fill> {
         const apiCall = this.gdaxExchangeApi.authCall('GET', `/fills`, {});
-        this.gdaxExchangeApi.handleResponse<Fill[]>(apiCall, null).then((fills: Fill[]) => {
+        return Promise.resolve(this.gdaxExchangeApi.handleResponse<Fill[]>(apiCall, null).then((fills: GDAXFill[]) => {
             // on ne prend que l'ordre le plus recent
 
-            const lastFill = fills.filter((f) => f.product_id === this.confService.configurationFile.application.product.name)
+            return fills.filter((f) => f.product_id === this.confService.configurationFile.application.product.name)
                 .sort((a, b) => {
                     return (a.trade_id - b.trade_id) * -1;
+                })
+                .map((value) => {
+                    const customFill: Fill = {
+                        created_at: value.created_at,
+                        order_id: value.order_id,
+                        trade_id: value.trade_id,
+                        side: value.side,
+                        price: value.price,
+                        fee: value.fee,
+                        size: value.size
+                    };
+                    return customFill;
                 })[0];
+        }));
+    }
 
-            this.lastFill = lastFill;
-            this._orderInProgress = this.lastFill.side === 'buy';
-            this.logLastFill();
-            this.logMode();
+    public loadAndLogLastOrder(): void {
+        const apiCall = this.gdaxExchangeApi.authCall('GET', `/orders`, {});
+        this.gdaxExchangeApi.handleResponse<GDAXOrder[]>(apiCall, null).then((orders: GDAXOrder[]) => {
+            // orders.filter((o) => o.product_id === this.confService.configurationFile.application.product.name)
+            //     .forEach((value) => {
+            //         this.logCurrentOrder(value);
+            //     });
+            return;
         });
     }
 
@@ -72,13 +99,14 @@ export class AccountService {
         console.log(`Cost :     ${padfloat(this.lastFill.fee, 8, 4)} €`);
         console.log(`Price :    ${padfloat(this.lastFill.price, 8, 4)} €`);
         console.log(`Size :     ${padfloat(this.lastFill.size, 8, 4)} ${this.confService.configurationFile.application.product.type}`);
+        console.log(JSON.stringify(this.lastFill));
         console.log(printSeparator());
     }
 
     public logMode(): void {
         console.log(printSeparator());
         console.log('MODE : ');
-        if (this._orderInProgress) {
+        if (this.orderInProgress) {
             console.log('Your last order is a BUY order => SELL MODE');
         } else {
             console.log('Your last order is a SELL order => BUY MODE');
@@ -106,6 +134,7 @@ export class AccountService {
         console.log('Showing orders');
         this.gdaxExchangeApi.loadAllOrders(this.confService.configurationFile.application.product.name).then((orders) => {
             let total: BigJS = Big(0);
+            console.log(orders);
             orders.forEach((o: LiveOrder) => {
                 total = total.plus(o.size);
             });
@@ -113,7 +142,14 @@ export class AccountService {
         });
     }
 
-    get orderInProgress(): boolean {
-        return this._orderInProgress;
+    get orderInProgress(): Promise<boolean> {
+        if (this.lastFill === undefined) {
+            return Promise.resolve(this.loadLastFill().then((value) => {
+                return value.side === 'buy';
+            }));
+
+        } else {
+            return Promise.resolve(this.lastFill.side === 'buy');
+        }
     }
 }

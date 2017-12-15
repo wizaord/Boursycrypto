@@ -27,7 +27,7 @@ logger.log('info', 'Using configuration ' + JSON.stringify(options));
 const products: string[] = [confService.configurationFile.application.product.name];
 const accountService = new AccountService(options, confService);
 const historiqueService = new HistoriqueService(confService);
-const tradeService = new TradeService(options);
+const tradeService = new TradeService(options, accountService, confService);
 historiqueService.registerTradeService(tradeService);
 const bookBTC = new LiveOrderBookHandleService(options, confService, accountService, historiqueService);
 

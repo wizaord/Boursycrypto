@@ -1,16 +1,32 @@
 import { Tendance } from '../model/HistoriqueTic';
 import { printSeparator } from 'gdax-trading-toolkit/build/src/utils';
 import { HistoriqueService } from './HistoriqueService';
-import {  GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
+import { GDAXExchangeAPI, GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
+import { AccountService } from './AccountService';
+import { ConfService } from './ConfService';
 
 export class TradeService {
 
     private historiqueSrv: HistoriqueService;
-    // private gdaxExchangeApi: GDAXExchangeAPI;
+    private gdaxExchangeApi: GDAXExchangeAPI;
+    private accountService: AccountService;
+    private confService: ConfService;
 
-    public constructor(options: GDAXFeedConfig) {
+    public constructor(options: GDAXFeedConfig, accountService: AccountService, confService: ConfService) {
         this.historiqueSrv = HistoriqueService._instance;
-        // this.gdaxExchangeApi = new GDAXExchangeAPI(options);
+        this.gdaxExchangeApi = new GDAXExchangeAPI(options);
+        this.accountService = accountService;
+        this.confService = confService;
+
+        // regarde le mode de fonctionnement
+        this.accountService.orderInProgress.then(value => {
+            if (value === true) {
+                console.log('en mode vente - suppression de tous les ordres');
+            } else {
+                console.log('en mode achat');
+            }
+            this.cancelAllOrders();
+        });
     }
 
     public tradeNow() {
@@ -28,6 +44,26 @@ export class TradeService {
         console.log('Tendance 30 minutes : ' + this.convertTendanceInStr(tendance30min));
         console.log('Tendance 60 minutes : ' + this.convertTendanceInStr(tendance60min));
         console.log(printSeparator());
+    }
+
+
+    /**
+     * Cancel all orders
+     */
+    public cancelAllOrders(): void {
+        console.log('called cancel all orders');
+        this.gdaxExchangeApi.loadAllOrders(this.confService.configurationFile.application.product.name).then((orders) => {
+            orders.forEach((order) => {
+                this.cancelOrder(order.id);
+            });
+        });
+    }
+
+    public cancelOrder(orderId: string): void {
+        console.log('Cancel order with ID :' + orderId);
+        this.gdaxExchangeApi.cancelOrder(orderId).then((result: string) => {
+            console.log('Order with ID : ' + result + ' has been successfully cancelled');
+        }).catch(logError);
     }
 
     /**
@@ -117,18 +153,6 @@ export class TradeService {
         return `type: ${tendance.type} => evolutionPrix: ${tendance.evolPrice.toFixed(2)}, pourcentage: ${tendance.evolPourcentage.toFixed(2)}, volume: ${tendance.volumeEchangee.toFixed(2)}`;
     }
 
-    // /**
-    //  * Cancel all orders
-    //  */
-    // private cancelAllOrders(): void {
-    //     console.log('called cancel all orders');
-    //     this.gdaxExchangeApi.cancelAllOrders(null).then((orders: string[]) => {
-    //         orders.forEach((order: string) => {
-    //             console.log(order);
-    //         });
-    //         console.log(printSeparator());
-    //     }).catch(logError);
-    // }
     //
     // private placeLimitOrder(limit: number): void {
     //     // TODO : to implement
@@ -156,12 +180,12 @@ export class TradeService {
     // }
 }
 
-//
-// function logError(err: any) {
-//     console.error(printSeparator());
-//     console.error('Error: ' + err.message);
-//     if (err && (err.response && err.response.error)) {
-//         console.error(err.response.error.message);
-//     }
-//     console.error(printSeparator());
-// }
+
+function logError(err: any) {
+    console.error(printSeparator());
+    console.error('Error: ' + err.message);
+    if (err && (err.response && err.response.error)) {
+        console.error(err.response.error.message);
+    }
+    console.error(printSeparator());
+}
