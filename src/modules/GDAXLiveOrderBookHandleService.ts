@@ -1,21 +1,24 @@
 import { GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
 import { ConfService } from '../services/ConfService';
 import { LiveOrderbook, TradeMessage } from 'gdax-trading-toolkit/build/src/core';
+import { GDAXTradeService } from './GDAXTradeService';
+import { TendanceService } from './TendanceService';
 
 export class GDAXLiveOrderBookHandleService {
-    private options: GDAXFeedConfig;
-    // private confService: ConfService;
+    // private options: GDAXFeedConfig;
     private _liveOrderBook: LiveOrderbook;
+    private gdaxTradeService: GDAXTradeService;
+    private tendanceService: TendanceService;
 
     constructor() {
         console.log('Create - GDAXLiveOrderBookHandleService');
 
     }
 
-    public inject(options: GDAXFeedConfig, confService: ConfService): void {
+    public inject(options: GDAXFeedConfig, confService: ConfService, gdaxTradeService: GDAXTradeService, tendanceService: TendanceService): void {
         console.log('Inject - GDAXLiveOrderBookHandleService');
-        this.options = options;
-        // this.confService = confService;
+        this.gdaxTradeService = gdaxTradeService;
+        this.tendanceService = tendanceService;
 
         this._liveOrderBook = new LiveOrderbook({product: confService.configurationFile.application.product.name, logger: options.logger});
 
@@ -35,7 +38,9 @@ export class GDAXLiveOrderBookHandleService {
      * @param {TradeMessage} trade
      */
     public handleTradeMessage(trade: TradeMessage) {
-        this.options.logger.log('info', 'Place <' + trade.productId + '>, price => ' + trade.price);
+        // this.options.logger.log('debug', 'Place <' + trade.productId + '>, price => ' + trade.price);
+        this.tendanceService.addTradeMessage(trade);
+        this.gdaxTradeService.notifyNewTradeMessage(trade);
     }
 
     get liveOrderBook(): LiveOrderbook {

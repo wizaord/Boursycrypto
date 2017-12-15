@@ -90,3 +90,14 @@ export interface GDAXOrder {
    stop: string;
    stop_price: BigJS;
 }
+
+export interface Order {
+    id: string;
+    price: BigJS;
+    side: string;
+    size: BigJS;
+    time: Date;
+    status: string;
+    fee: BigJS;
+}
+
