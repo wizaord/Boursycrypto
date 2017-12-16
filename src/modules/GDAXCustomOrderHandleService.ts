@@ -4,6 +4,7 @@ import { ConfService } from '../services/ConfService';
 import { GDAXTradeService } from './GDAXTradeService';
 import { MyOrderPlacedMessage, TradeExecutedMessage, TradeFinalizedMessage, Trader, TraderConfig } from 'gdax-trading-toolkit/build/src/core';
 import { LiveOrder } from 'gdax-trading-toolkit/build/src/lib';
+import { printSeparator } from 'gdax-trading-toolkit/build/src/utils';
 
 export class GDAXCustomOrderHandleService {
     private gdaxExchangeApi: GDAXExchangeAPI;
@@ -60,6 +61,8 @@ export class GDAXCustomOrderHandleService {
         });
         this.trader.on('Trader.trade-executed', (msg: TradeExecutedMessage) => {
             this.options.logger.log('info', 'Trade executed', JSON.stringify(msg));
+            // lorsque la vente d'un ordre a eu lieu
+            this.gdaxTradeService.notifyOrderFinished();
         });
         this.trader.on('Trader.trade-finalized', (msg: TradeFinalizedMessage) => {
             this.options.logger.log('info', 'Order complete', JSON.stringify(msg));
@@ -100,4 +103,29 @@ export class GDAXCustomOrderHandleService {
                 })[0];
         }));
     }
+
+    public cancelAllOrders(): void {
+        console.log('called cancel all orders');
+        this.gdaxExchangeApi.loadAllOrders(this.confService.configurationFile.application.product.name).then((orders) => {
+            orders.forEach((order) => {
+                this.cancelOrder(order.id);
+            });
+        });
+    }
+
+    public cancelOrder(orderId: string): void {
+        console.log('Cancel order with ID :' + orderId);
+        this.gdaxExchangeApi.cancelOrder(orderId).then((result: string) => {
+            console.log('Order with ID : ' + result + ' has been successfully cancelled');
+        }).catch(logError);
+    }
+}
+
+function logError(err: any) {
+    console.error(printSeparator());
+    console.error('Error: ' + err.message);
+    if (err && (err.response && err.response.error)) {
+        console.error(err.response.error.message);
+    }
+    console.error(printSeparator());
 }

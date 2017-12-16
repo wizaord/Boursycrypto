@@ -8,8 +8,14 @@ import { GDAXTradeService } from './modules/GDAXTradeService';
 import { getSubscribedFeeds } from 'gdax-trading-toolkit/build/src/factories/gdaxFactories';
 import { TendanceService } from './modules/TendanceService';
 
+if (process.argv.length !== 3) {
+    console.error('Please set the name of the application_XXX.yml file');
+    throw new Error('Please set the name of the application_XXX.yml file');
+}
+const applicationFileName = process.argv[2];
+
 // Init objects
-const confService = new ConfService('application.yml');
+const confService = new ConfService(applicationFileName);
 const logger = GTT.utils.ConsoleLoggerFactory();
 const options: GDAXFeedConfig = {
     logger: logger,
@@ -41,7 +47,7 @@ getSubscribedFeeds(options, products)
     gdaxAccount.inject(options, confService);
     gdaxCustomOrder.inject(options, confService, gdaxTradeService, feed);
     gdaxLiveOrder.inject(options, confService, gdaxTradeService, tendanceService);
-    gdaxTradeService.inject(options, confService, tendanceService);
+    gdaxTradeService.inject(options, confService, tendanceService, gdaxCustomOrder);
 
 // init all modules
     gdaxAccount.init();

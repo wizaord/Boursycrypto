@@ -6,7 +6,9 @@
     "build": "tsc -d -p .",
     "lint": "tslint -c tslint.json -p . -t stylish",
     "run_js": "node build/main.js",
-    "run_ts": "ts-node src/main.ts"
+    "run_ts_LTC": "ts-node src/main.ts application_LTC.yml",
+    "run_ts_ETH": "ts-node src/main.ts application_ETH.yml",
+    "run_ts_BTC": "ts-node src/main.ts application_BTC.yml"
   },
   "dependencies": {
     "@types/yamljs": "^0.2.30",
