@@ -6,9 +6,9 @@ import { printSeparator } from 'gdax-trading-toolkit/build/src/utils';
 import { Tendance } from '../model/HistoriqueTic';
 import { TendanceService } from './TendanceService';
 import { LiveOrder } from 'gdax-trading-toolkit/build/src/lib';
-import { GDAXCustomOrderHandleService } from './GDAXCustomOrderHandleService';
 import { GDAXAccountService } from './GDAXAccountService';
 import { delay } from 'gdax-trading-toolkit/build/src/utils/promises';
+import { GDAXCustomOrderHandleInterface } from './IGDAXCustomOrderHandleService';
 
 export class GDAXTradeService {
 
@@ -22,7 +22,7 @@ export class GDAXTradeService {
     private negatifWaitPourcent: number;
     private beneficeWaitPourcent: number;
     private beneficeFollowPourcent: number;
-    private customOrder: GDAXCustomOrderHandleService;
+    private customOrder: GDAXCustomOrderHandleInterface;
     private accountService: GDAXAccountService;
 
     constructor() {
@@ -30,7 +30,7 @@ export class GDAXTradeService {
         GDAXTradeService._instance = this;
     }
 
-    public inject(options: GDAXFeedConfig, confService: ConfService, tendanceService: TendanceService, customOrder: GDAXCustomOrderHandleService, accountService: GDAXAccountService): void {
+    public inject(options: GDAXFeedConfig, confService: ConfService, tendanceService: TendanceService, customOrder: GDAXCustomOrderHandleInterface, accountService: GDAXAccountService): void {
         console.log('Inject - GDAXTradeService');
         this.accountService = accountService;
         this.tendanceService = tendanceService;

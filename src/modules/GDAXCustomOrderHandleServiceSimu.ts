@@ -6,13 +6,14 @@ import { MyOrderPlacedMessage, TradeExecutedMessage, TradeFinalizedMessage, Trad
 import { LiveOrder } from 'gdax-trading-toolkit/build/src/lib';
 import { printSeparator } from 'gdax-trading-toolkit/build/src/utils';
 import * as BigNumber from 'bignumber.js';
+import { GDAXCustomOrderHandleInterface } from './IGDAXCustomOrderHandleService';
 
-export class GDAXCustomOrderHandleServiceSimu {
+export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleInterface {
+    trader: Trader;
     private gdaxExchangeApi: GDAXExchangeAPI;
     private options: GDAXFeedConfig;
     private confService: ConfService;
     private gdaxTradeService: GDAXTradeService;
-    public trader: Trader;
 
     constructor() {
         console.log('Create - GDAXCustomOrderHandleServiceSimu');
@@ -118,7 +119,7 @@ export class GDAXCustomOrderHandleServiceSimu {
 
     public placeStopOrder(priceP: number, nbCoin: string): Promise<LiveOrder> {
         const liveOrder: LiveOrder = {
-            price: new BigNumber(priceP),
+            price: new BigNumber(priceP.toFixed(8)),
             side: 'sell',
             id: 'id',
             size: new BigNumber(nbCoin),

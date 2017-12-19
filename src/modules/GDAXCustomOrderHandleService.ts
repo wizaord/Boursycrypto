@@ -7,13 +7,14 @@ import { LiveOrder } from 'gdax-trading-toolkit/build/src/lib';
 import { printSeparator } from 'gdax-trading-toolkit/build/src/utils';
 import * as BigNumber from 'bignumber.js';
 import { delay } from 'gdax-trading-toolkit/build/src/utils/promises';
+import { GDAXCustomOrderHandleInterface } from './IGDAXCustomOrderHandleService';
 
-export class GDAXCustomOrderHandleService {
+export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterface {
+    trader: Trader;
     private gdaxExchangeApi: GDAXExchangeAPI;
     private options: GDAXFeedConfig;
     private confService: ConfService;
     private gdaxTradeService: GDAXTradeService;
-    public trader: Trader;
 
     constructor() {
         console.log('Create - GDAXCustomOrderHandleService');

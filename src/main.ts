@@ -8,6 +8,7 @@ import { GDAXTradeService } from './modules/GDAXTradeService';
 import { getSubscribedFeeds } from 'gdax-trading-toolkit/build/src/factories/gdaxFactories';
 import { TendanceService } from './modules/TendanceService';
 import { GDAXCustomOrderHandleServiceSimu } from './modules/GDAXCustomOrderHandleServiceSimu';
+import { GDAXCustomOrderHandleInterface } from './modules/IGDAXCustomOrderHandleService';
 
 if (process.argv.length !== 4) {
     console.error('Please set the name of the application_XXX.yml file');
@@ -40,7 +41,7 @@ const gdaxExchangeApi = new GDAXExchangeAPI(options);
 
 // create all new services
 const gdaxAccount = new GDAXAccountService();
-let gdaxCustomOrder: any;
+let gdaxCustomOrder: GDAXCustomOrderHandleInterface;
 if (isModeSimu) {
     gdaxCustomOrder = new GDAXCustomOrderHandleServiceSimu();
 } else {
