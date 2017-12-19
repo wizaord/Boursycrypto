@@ -2,13 +2,12 @@ import { Fill, GDAXFill } from '../model/fill';
 import { GDAXExchangeAPI, GDAXFeed, GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
 import { ConfService } from '../services/ConfService';
 import { GDAXTradeService } from './GDAXTradeService';
-import { MyOrderPlacedMessage, PlaceOrderMessage, TradeExecutedMessage, TradeFinalizedMessage, Trader, TraderConfig } from 'gdax-trading-toolkit/build/src/core';
+import { MyOrderPlacedMessage, TradeExecutedMessage, TradeFinalizedMessage, Trader, TraderConfig } from 'gdax-trading-toolkit/build/src/core';
 import { LiveOrder } from 'gdax-trading-toolkit/build/src/lib';
 import { printSeparator } from 'gdax-trading-toolkit/build/src/utils';
 import * as BigNumber from 'bignumber.js';
-import { delay } from 'gdax-trading-toolkit/build/src/utils/promises';
 
-export class GDAXCustomOrderHandleService {
+export class GDAXCustomOrderHandleServiceSimu {
     private gdaxExchangeApi: GDAXExchangeAPI;
     private options: GDAXFeedConfig;
     private confService: ConfService;
@@ -16,12 +15,12 @@ export class GDAXCustomOrderHandleService {
     public trader: Trader;
 
     constructor() {
-        console.log('Create - GDAXCustomOrderHandleService');
+        console.log('Create - GDAXCustomOrderHandleServiceSimu');
 
     }
 
     public inject(optionsP: GDAXFeedConfig, confService: ConfService, gdaxTradeService: GDAXTradeService, feed: GDAXFeed, gdaxExchangeApi: GDAXExchangeAPI): void {
-        console.log('Inject - GDAXCustomOrderHandleService');
+        console.log('Inject - GDAXCustomOrderHandleServiceSimu');
         this.options = optionsP;
         this.confService = confService;
         this.gdaxExchangeApi = gdaxExchangeApi;
@@ -39,10 +38,8 @@ export class GDAXCustomOrderHandleService {
     }
 
     public init(): void {
-        console.log('Init - GDAXCustomOrderHandleService');
-        this.cancelAllOrders()
-            .then((a) => delay(3000))
-            .then((b) => this.loadLastFill())
+        console.log('Init - GDAXCustomOrderHandleServiceSimu');
+        this.loadLastFill()
             .then((fill) => {
                 if (fill.side === 'buy') {
                     // le dernier point est un achat. On envoie donc comme s'il venait de passer
@@ -112,47 +109,25 @@ export class GDAXCustomOrderHandleService {
     }
 
     public cancelAllOrders(): Promise<boolean> {
-        console.log('called cancel all orders');
-        return Promise.resolve(this.trader.checkState()
-            .then((value) => this.gdaxExchangeApi.loadAllOrders(this.confService.configurationFile.application.product.name))
-            .then((orders) => {
-                orders.forEach((order) => {
-                    this.cancelOrder(order.id).then((value) => console.log('successfully deleted'));
-                });
-                return true;
-            })).catch((reason) => {
-            return logError(reason);
-        });
+        return Promise.resolve(true);
     }
 
     public cancelOrder(orderId: string): Promise<boolean> {
-        return Promise.resolve(this.gdaxExchangeApi.cancelOrder(orderId).then((result: string) => {
-            console.log('Order with ID : ' + result + ' has been successfully cancelled');
-            return true;
-        }).catch(logError));
+        return Promise.resolve(true);
     }
 
     public placeStopOrder(priceP: number, nbCoin: string): Promise<LiveOrder> {
-        const myOrder: PlaceOrderMessage = {
-            type: 'placeOrder',
-            orderType: 'stop',
+        const liveOrder: LiveOrder = {
+            price: new BigNumber(priceP),
             side: 'sell',
+            id: 'id',
+            size: new BigNumber(nbCoin),
+            time: new Date(),
             productId: this.confService.configurationFile.application.product.name,
-            price: priceP.toFixed(8),
-            size: nbCoin,
-            time: new Date()
+            status: 'open',
+            extra: null
         };
-        console.log('positionnement d un stopOrder a ' + priceP + ' pour ' + nbCoin + ' coins');
-        // console.log(JSON.stringify(myOrder));
-        return this.trader.placeOrder(myOrder).then((order) => {
-            // console.log('Live order post : ' + JSON.stringify(order));
-            order.price = new BigNumber(priceP.toFixed(10));
-            return Promise.resolve(order);
-        }).catch((reason) => {
-            console.log('Unable to place an order');
-            logError(reason);
-            return Promise.reject(reason);
-        });
+        return Promise.resolve(liveOrder);
     }
 }
 

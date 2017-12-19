@@ -7,15 +7,21 @@ import { GDAXLiveOrderBookHandleService } from './modules/GDAXLiveOrderBookHandl
 import { GDAXTradeService } from './modules/GDAXTradeService';
 import { getSubscribedFeeds } from 'gdax-trading-toolkit/build/src/factories/gdaxFactories';
 import { TendanceService } from './modules/TendanceService';
+import { GDAXCustomOrderHandleServiceSimu } from './modules/GDAXCustomOrderHandleServiceSimu';
 
-if (process.argv.length !== 3) {
+if (process.argv.length !== 4) {
     console.error('Please set the name of the application_XXX.yml file');
     throw new Error('Please set the name of the application_XXX.yml file');
 }
 const applicationFileName = process.argv[2];
+const isModeSimu = (process.argv[3] !== 'no');
+
+console.log('#############################################################');
+console.log(' DEMARRAGE EN MODE SIMU = ' + isModeSimu);
+console.log('#############################################################');
 
 // Init objects
-const confService = new ConfService(applicationFileName);
+const confService = new ConfService(isModeSimu, applicationFileName);
 const logger = GTT.utils.ConsoleLoggerFactory();
 const options: GDAXFeedConfig = {
     logger: logger,
@@ -34,7 +40,12 @@ const gdaxExchangeApi = new GDAXExchangeAPI(options);
 
 // create all new services
 const gdaxAccount = new GDAXAccountService();
-const gdaxCustomOrder = new GDAXCustomOrderHandleService();
+let gdaxCustomOrder: any;
+if (isModeSimu) {
+    gdaxCustomOrder = new GDAXCustomOrderHandleServiceSimu();
+} else {
+    gdaxCustomOrder = new GDAXCustomOrderHandleService();
+}
 const gdaxLiveOrder = new GDAXLiveOrderBookHandleService();
 const gdaxTradeService = new GDAXTradeService();
 const tendanceService = new TendanceService();
@@ -60,7 +71,6 @@ getSubscribedFeeds(options, products)
     // redirect to liveOrderBook
     feed.pipe(gdaxLiveOrder.liveOrderBook);
     feed.pipe(gdaxCustomOrder.trader);
-
 
 }).catch((err: Error) => {
     logger.log('error', err.message);

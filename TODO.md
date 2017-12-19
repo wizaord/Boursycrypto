@@ -1,2 +1,6 @@
 # Liste des TODO à faire
-* faire le module permettant de récupérer son wallet
+
+- Pouvoir passer des ordres d'achat
+- Pouvoir mettre une limite aux ordres d'achat
+
+

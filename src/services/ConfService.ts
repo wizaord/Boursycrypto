@@ -3,12 +3,14 @@ import * as YAML from 'yamljs';
 
 export class ConfService {
     public configurationFile: any;
+    public isModeSimu: boolean;
 
     /**
      * Default constructor. Need the path to the configuration file
      * @param {string} filePath
      */
-    constructor(filePath: string) {
+    constructor(isModeSimu: boolean, filePath: string) {
+        this.isModeSimu = isModeSimu;
         this.loadConfiguration(filePath);
     }
 

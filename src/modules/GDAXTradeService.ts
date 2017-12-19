@@ -37,7 +37,6 @@ export class GDAXTradeService {
         this.options = options;
         this.confService = confService;
         this.customOrder = customOrder;
-
     }
 
     public init(): void {
@@ -76,14 +75,15 @@ export class GDAXTradeService {
         }
 
         // il est possible qu'il n'y ait aucun stop order à ce moment. Si au debut on a pas pu le mettre car le court est vraiment tres tres bas
+        this.logBalance();
+
+        // affichage du status en cours
         if (this.stopOrderCurrentOrder === undefined) {
             const stopPrice = this.calculateStopOrderPrice(this.currentPrice, this.negatifWaitPourcent);
             this.placeStopOrder(stopPrice);
             return;
         }
 
-        // affichage du status en cours
-        this.logBalance();
         // l'algo est le suivant :
         const balance = this.getBalance();
 
@@ -157,7 +157,7 @@ export class GDAXTradeService {
         console.log(printSeparator());
     }
 
-    private getBalance(): number {
+    public getBalance(): number {
         const lastOrderPrice: number = Number(this.lastOrder.price);
         const quantity = Number(this.lastOrder.size);
         const feeAchat = Number(this.lastOrder.fee);
@@ -168,7 +168,7 @@ export class GDAXTradeService {
         return prixVente - coutAchat;
     }
 
-    private convertTendanceInStr(tendance: Tendance): string {
+    public convertTendanceInStr(tendance: Tendance): string {
         return `type: ${tendance.type} => evolutionPrix: ${tendance.evolPrice.toFixed(2)}, pourcentage: ${tendance.evolPourcentage.toFixed(2)}, volume: ${tendance.volumeEchangee.toFixed(2)}`;
     }
 
@@ -176,7 +176,7 @@ export class GDAXTradeService {
      * Fonction qui positionne un stopOrder a XX% en dessous du court actuel.
      * Le XX% est configurable dans le fichier de configuration
      */
-    private placeStopOrder(price: number) {
+    public placeStopOrder(price: number) {
         // si un stop order est deja present, il faut le supprimer
         if (this.stopOrderCurrentOrder !== undefined) {
             this.customOrder.cancelOrder(this.stopOrderCurrentOrder.id)
@@ -190,7 +190,7 @@ export class GDAXTradeService {
         }
     }
 
-    private createStopOrder(price: number) {
+    public createStopOrder(price: number) {
         this.customOrder.placeStopOrder(price, this.accountService.btc.toFixed(10)).then((liveOrder) => {
             this.stopOrderCurrentOrder = liveOrder;
         }).catch((reason) => {
@@ -200,7 +200,7 @@ export class GDAXTradeService {
         });
     }
 
-    private calculateStopOrderPrice(price: number, pourcent: number): number {
+    public calculateStopOrderPrice(price: number, pourcent: number): number {
         return price - ((price * pourcent) / 100);
     }
 }
