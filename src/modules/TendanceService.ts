@@ -153,7 +153,7 @@ export class TendanceService {
             receiveDate: tradeMsg.time,
             price: new BigNumber(tradeMsg.price),
             volumeEchange: new BigNumber(tradeMsg.size),
-            isBuy: (tradeMsg.side === 'buy') ? true : false
+            isBuy: (tradeMsg.side === 'buy')
         };
     }
 

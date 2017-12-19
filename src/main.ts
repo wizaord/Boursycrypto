@@ -1,5 +1,5 @@
 import * as GTT from 'gdax-trading-toolkit';
-import { GDAX_API_URL, GDAX_WS_FEED, GDAXFeed, GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
+import { GDAX_API_URL, GDAX_WS_FEED, GDAXExchangeAPI, GDAXFeed, GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
 import { ConfService } from './services/confService';
 import { GDAXAccountService } from './modules/GDAXAccountService';
 import { GDAXCustomOrderHandleService } from './modules/GDAXCustomOrderHandleService';
@@ -30,6 +30,7 @@ const options: GDAXFeedConfig = {
 };
 logger.log('info', 'Using configuration ' + JSON.stringify(options));
 const products: string[] = [confService.configurationFile.application.product.name];
+const gdaxExchangeApi = new GDAXExchangeAPI(options);
 
 // create all new services
 const gdaxAccount = new GDAXAccountService();
@@ -44,10 +45,10 @@ getSubscribedFeeds(options, products)
 
     // inject all dependencies
     tendanceService.inject(confService);
-    gdaxAccount.inject(options, confService);
-    gdaxCustomOrder.inject(options, confService, gdaxTradeService, feed);
+    gdaxAccount.inject(options, confService, gdaxExchangeApi);
+    gdaxCustomOrder.inject(options, confService, gdaxTradeService, feed, gdaxExchangeApi);
     gdaxLiveOrder.inject(options, confService, gdaxTradeService, tendanceService);
-    gdaxTradeService.inject(options, confService, tendanceService, gdaxCustomOrder);
+    gdaxTradeService.inject(options, confService, tendanceService, gdaxCustomOrder, gdaxAccount);
 
 // init all modules
     gdaxAccount.init();
