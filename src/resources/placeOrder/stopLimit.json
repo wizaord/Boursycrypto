@@ -1,0 +1,19 @@
+{
+  created_at: "2017-12-20T13:57:45.125861Z",
+  executed_value: "0.0000000000000000",
+  fill_fees: "0.0000000000000000",
+  filled_size: "0.00000000",
+  id: "3f383369-4532-4c5b-ae84-8bebc92be5e3",
+  post_only: false,
+  price: "14001.00000000",
+  product_id: "BTC-EUR",
+  settled: false,
+  side: "sell",
+  size: "0.01028448",
+  status: "pending",
+  stop: "loss",
+  stop_price: "14000.00000000",
+  stp: "dc",
+  time_in_force: "GTC",
+  type: "limit"
+}

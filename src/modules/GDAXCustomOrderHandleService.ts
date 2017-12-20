@@ -15,7 +15,6 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
     private options: GDAXFeedConfig;
     private confService: ConfService;
     private gdaxTradeService: GDAXTradeService;
-
     constructor() {
         console.log('Create - GDAXCustomOrderHandleService');
 
@@ -32,7 +31,9 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
             logger: this.options.logger,
             productId: this.confService.configurationFile.application.product.name,
             exchangeAPI: feed.authenticatedAPI,
-            fitOrders: false
+            fitOrders: false,
+            pricePrecision: 2,
+            sizePrecision: 8
         };
 
         this.trader = new Trader(traderConfig);
@@ -133,24 +134,45 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
         }).catch(logError));
     }
 
-    public placeStopOrder(priceP: number, nbCoin: string): Promise<LiveOrder> {
+    public placeStopOrder(priceP: number, nbCoin: number): Promise<LiveOrder> {
         const myOrder: PlaceOrderMessage = {
             type: 'placeOrder',
             orderType: 'stop',
             side: 'sell',
             productId: this.confService.configurationFile.application.product.name,
-            price: priceP.toFixed(8),
-            size: nbCoin,
+            price: priceP.toFixed(2),
+            size: '0.0001',
             time: new Date()
         };
         console.log('positionnement d un stopOrder a ' + priceP + ' pour ' + nbCoin + ' coins');
-        // console.log(JSON.stringify(myOrder));
+        console.log(JSON.stringify(myOrder));
         return this.trader.placeOrder(myOrder).then((order) => {
             // console.log('Live order post : ' + JSON.stringify(order));
             order.price = new BigNumber(priceP.toFixed(10));
             return Promise.resolve(order);
         }).catch((reason) => {
             console.log('Unable to place an order');
+            logError(reason);
+            return Promise.reject(reason);
+        });
+    }
+
+    public placeLimitOrder(priceP: number, nbCoin: number): Promise<LiveOrder> {
+        const myOrder: PlaceOrderMessage = {
+            type: 'limit',
+            orderType: 'limit',
+            size: nbCoin,
+            price: priceP.toFixed(2),
+            side: 'sell',
+            productId: this.confService.configurationFile.application.product.name,
+            time: new Date()
+        };
+        console.log('positionnement d un order limit a ' + priceP + ' pour ' + nbCoin + ' coins');
+        return this.trader.placeOrder(myOrder).then((order) => {
+            order.price = new BigNumber(priceP.toFixed(10));
+            return Promise.resolve(order);
+        }).catch((reason) => {
+            console.log('Unable to place an order limit');
             logError(reason);
             return Promise.reject(reason);
         });

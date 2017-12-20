@@ -14,7 +14,6 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
     private options: GDAXFeedConfig;
     private confService: ConfService;
     private gdaxTradeService: GDAXTradeService;
-
     constructor() {
         console.log('Create - GDAXCustomOrderHandleServiceSimu');
 
@@ -117,8 +116,16 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
         return Promise.resolve(true);
     }
 
-    public placeStopOrder(priceP: number, nbCoin: string): Promise<LiveOrder> {
-        const liveOrder: LiveOrder = {
+    public placeStopOrder(priceP: number, nbCoin: number): Promise<LiveOrder> {
+        return Promise.resolve(this.createLiveOrder(priceP, nbCoin));
+    }
+
+    public placeLimitOrder(priceP: number, nbCoin: number): Promise<LiveOrder> {
+        return Promise.resolve(this.createLiveOrder(priceP, nbCoin));
+    }
+
+    private createLiveOrder(priceP: number, nbCoin: number): LiveOrder {
+        return {
             price: new BigNumber(priceP.toFixed(8)),
             side: 'sell',
             id: 'id',
@@ -128,7 +135,6 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
             status: 'open',
             extra: null
         };
-        return Promise.resolve(liveOrder);
     }
 }
 

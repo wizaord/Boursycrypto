@@ -46,7 +46,10 @@ export class GDAXTradeService {
         this.beneficeWaitPourcent = Number(this.confService.configurationFile.application.stoporder.beneficeWaitPourcent);
         this.beneficeFollowPourcent = Number(this.confService.configurationFile.application.stoporder.beneficeFollowPourcent);
 
-        setInterval(getTendance, this.confService.configurationFile.application.historique.computeDelay);
+
+        if (this.confService.configurationFile.application.historique.logTendance === 'true') {
+            setInterval(getTendance, this.confService.configurationFile.application.historique.computeDelay);
+        }
         setInterval(tradeManHoYeah, 30000);
     }
 
@@ -191,7 +194,7 @@ export class GDAXTradeService {
     }
 
     public createStopOrder(price: number) {
-        this.customOrder.placeStopOrder(price, this.accountService.btc.toFixed(10)).then((liveOrder) => {
+        this.customOrder.placeStopOrder(price, this.accountService.btc).then((liveOrder) => {
             this.stopOrderCurrentOrder = liveOrder;
         }).catch((reason) => {
             console.log('impossible de creer le liveOrder... Bizarre ' + JSON.stringify(reason));

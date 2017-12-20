@@ -11,5 +11,6 @@ export interface GDAXCustomOrderHandleInterface {
     init(): void;
     cancelAllOrders(): Promise<boolean>;
     cancelOrder(orderId: string): Promise<boolean>;
-    placeStopOrder(priceP: number, nbCoin: string): Promise<LiveOrder>;
+    placeStopOrder(priceP: number, nbCoin: number): Promise<LiveOrder>;
+    placeLimitOrder(priceP: number, nbCoin: number): Promise<LiveOrder>;
 }
