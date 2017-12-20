@@ -1,4 +1,4 @@
-import { Fill, GDAXFill } from '../model/fill';
+import { Fill, GDAXFill, Order } from '../model/fill';
 import { GDAXExchangeAPI, GDAXFeed, GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
 import { ConfService } from '../services/ConfService';
 import { GDAXTradeService } from './GDAXTradeService';
@@ -18,7 +18,6 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
         console.log('Create - GDAXCustomOrderHandleServiceSimu');
 
     }
-
     public inject(optionsP: GDAXFeedConfig, confService: ConfService, gdaxTradeService: GDAXTradeService, feed: GDAXFeed, gdaxExchangeApi: GDAXExchangeAPI): void {
         console.log('Inject - GDAXCustomOrderHandleServiceSimu');
         this.options = optionsP;
@@ -122,6 +121,10 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
 
     public placeLimitOrder(priceP: number, nbCoin: number): Promise<LiveOrder> {
         return Promise.resolve(this.createLiveOrder(priceP, nbCoin));
+    }
+
+    public getLastBuyFill(): Promise<Order> {
+        return Promise.resolve(null);
     }
 
     private createLiveOrder(priceP: number, nbCoin: number): LiveOrder {

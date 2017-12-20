@@ -74,6 +74,13 @@ export class GDAXTradeService {
         // si aucun order en cours, on ne fait rien. On verra dans la V2
         if (this.lastOrder === undefined) {
             this.options.logger.log('info', 'Aucun ordre en cours. Rien à faire');
+            // on va verifier si on a pas encore des coins.
+            // si oui, on demande au customeOrder le dernier montant d'achat
+            if (this.accountService.btc >= 0) {
+                console.log('Des coins dans le panier, on va verifier à combien on les a acheté');
+                this.customOrder.getLastBuyFill()
+                    .then((order) => this.newOrderPass(order));
+            }
             return;
         }
 

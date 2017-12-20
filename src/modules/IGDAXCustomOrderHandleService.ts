@@ -3,6 +3,7 @@ import { ConfService } from '../services/ConfService';
 import { GDAXTradeService } from './GDAXTradeService';
 import { LiveOrder } from 'gdax-trading-toolkit/build/src/lib';
 import { Trader } from 'gdax-trading-toolkit/build/src/core';
+import { Order } from '../model/fill';
 
 export interface GDAXCustomOrderHandleInterface {
     trader: Trader;
@@ -13,4 +14,6 @@ export interface GDAXCustomOrderHandleInterface {
     cancelOrder(orderId: string): Promise<boolean>;
     placeStopOrder(priceP: number, nbCoin: number): Promise<LiveOrder>;
     placeLimitOrder(priceP: number, nbCoin: number): Promise<LiveOrder>;
+
+    getLastBuyFill(): Promise<Order>;
 }
