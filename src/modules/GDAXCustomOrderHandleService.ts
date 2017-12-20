@@ -107,7 +107,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
         }).catch(logError));
     }
 
-    public placeStopOrder(priceP: number, nbCoin: number): Promise<LiveOrder> {
+    public placeStopSellOrder(priceP: number, nbCoin: number): Promise<LiveOrder> {
         const myOrder: PlaceOrderMessage = {
             type: 'placeOrder',
             orderType: 'stop',

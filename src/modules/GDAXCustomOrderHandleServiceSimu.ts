@@ -115,7 +115,7 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
         return Promise.resolve(true);
     }
 
-    public placeStopOrder(priceP: number, nbCoin: number): Promise<LiveOrder> {
+    public placeStopSellOrder(priceP: number, nbCoin: number): Promise<LiveOrder> {
         return Promise.resolve(this.createLiveOrder(priceP, nbCoin));
     }
 

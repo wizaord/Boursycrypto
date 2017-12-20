@@ -73,13 +73,13 @@ export class GDAXTradeService {
         }
         // si aucun order en cours, on ne fait rien. On verra dans la V2
         if (this.lastOrder === undefined) {
-            this.options.logger.log('info', 'Aucun ordre en cours. Rien à faire');
             // on va verifier si on a pas encore des coins.
-            // si oui, on demande au customeOrder le dernier montant d'achat
             if (this.accountService.btc >= 0) {
-                console.log('Des coins dans le panier, on va verifier à combien on les a acheté');
-                this.customOrder.getLastBuyFill()
-                    .then((order) => this.newOrderPass(order));
+                console.log('Des coins dans le panier, on va rechercher l ordre');
+                this.customOrder.getLastBuyFill().then((order) => this.newOrderPass(order));
+            } else {
+                // si oui, on demande au customeOrder le dernier montant d'achat
+                this.options.logger.log('info', 'Aucun ordre en cours. Rien à faire');
             }
             return;
         }
@@ -95,27 +95,30 @@ export class GDAXTradeService {
         }
 
         // l'algo est le suivant :
-        const balance = this.getBalance();
+        const getEvolPourcent = this.calculatePourcentEvolution();
 
-        if (balance <= 0.50) {
-            console.log('Pas de benefice, on laisse le stoporder a ' + this.stopOrderCurrentOrder.price);
+        if (getEvolPourcent <= 1) {
+            console.log('Benefice inferieur a 1%, on laisse le stoporder a ' + this.stopOrderCurrentOrder.price);
         } else {
             // on fait des benefices, on regarde si le stopOrder est bien positionné.
-            if (this.stopOrderCurrentOrder.price < this.lastOrder.price) {
+            const currentStopOrderPrice = Number(this.stopOrderCurrentOrder.price);
+            const lastOrderPrice = Number(this.lastOrder.price);
+
+            if (currentStopOrderPrice < lastOrderPrice) {
                 const stopPrice = this.calculateStopOrderPrice(this.currentPrice, this.beneficeWaitPourcent);
                 console.log('On positionne le stopOrder pour faire du benefice a ' + stopPrice);
                 this.placeStopOrder(stopPrice);
                 return;
-            }
 
-            const currentStopOrderPrice = Number(this.stopOrderCurrentOrder.price);
+            }
+            // on est dans les benefices et on a le stop order deja positionne pour assurer notre argent.
+            // on fait donc monter le stop en fonction de la hausse de la courbe
             const newStopOrderPrice = this.calculateStopOrderPrice(this.currentPrice, this.beneficeFollowPourcent);
 
             if (newStopOrderPrice <= currentStopOrderPrice) {
-                this.options.logger.log('info', 'Cours en chute, on ne repositionne pas le stopOrder qui est a ' + this.stopOrderCurrentOrder.price);
+                this.options.logger.log('info', 'Cours en chute, on ne repositionne pas le stopOrder qui est a ' + currentStopOrderPrice);
             } else {
-                const stopOrderPrice = this.calculateStopOrderPrice(this.currentPrice, this.beneficeFollowPourcent);
-                this.placeStopOrder(stopOrderPrice);
+                this.placeStopOrder(newStopOrderPrice);
                 return;
             }
         }
@@ -136,7 +139,8 @@ export class GDAXTradeService {
     public logBalance(): void {
         if (this.lastOrder !== undefined) {
             const fee = Number(this.lastOrder.fee).toFixed(2);
-            this.options.logger.log('info', `COURS EVOL : - achat ${this.lastOrder.price} - fee ${fee} - now ${this.currentPrice} - benefice ${this.getBalance().toFixed(2)}`);
+            const achatPrice = Number(this.lastOrder.price).toFixed(2);
+            this.options.logger.log('info', `COURS EVOL : - achat ${achatPrice} - fee ${fee} - now ${this.currentPrice} - benefice ${this.getBalance().toFixed(2)} - evolution ${this.calculatePourcentEvolution().toFixed(2)}`);
         }
     }
 
@@ -201,7 +205,7 @@ export class GDAXTradeService {
     }
 
     public createStopOrder(price: number) {
-        this.customOrder.placeStopOrder(price, this.accountService.btc).then((liveOrder) => {
+        this.customOrder.placeStopSellOrder(price, this.accountService.btc).then((liveOrder) => {
             this.stopOrderCurrentOrder = liveOrder;
         }).catch((reason) => {
             console.log('impossible de creer le liveOrder... Bizarre ' + JSON.stringify(reason));
@@ -212,6 +216,10 @@ export class GDAXTradeService {
 
     public calculateStopOrderPrice(price: number, pourcent: number): number {
         return price - ((price * pourcent) / 100);
+    }
+
+    private calculatePourcentEvolution(): number {
+        return ((this.currentPrice * 100) / Number(this.lastOrder.price)) - 100;
     }
 }
 
