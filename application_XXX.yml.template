@@ -1,0 +1,15 @@
+application:
+  auth:
+    apikey: <YourAPIKEY>
+    apisecretkey: <YourAPISECRET>
+    passphrase: 5kc7ylps3w
+  product:
+    name: LTC-EUR
+    type: LTC
+  stoporder:
+    negatifWaitPourcent: 2.5
+    beneficeWaitPourcent: 0.5
+    beneficeFollowPourcent: 1
+  historique:
+    computeDelay: 60000
+    logTendance: false
