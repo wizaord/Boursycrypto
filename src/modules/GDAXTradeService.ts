@@ -1,4 +1,4 @@
-import { TradeMessage } from 'gdax-trading-toolkit/build/src/core';
+import { TradeExecutedMessage, TradeMessage } from 'gdax-trading-toolkit/build/src/core';
 import { Order } from '../model/fill';
 import { GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
 import { ConfService } from '../services/ConfService';
@@ -74,8 +74,8 @@ export class GDAXTradeService {
         // si aucun order en cours, on ne fait rien. On verra dans la V2
         if (this.lastOrder === undefined) {
             // on va verifier si on a pas encore des coins.
-            if (this.accountService.btc >= 0) {
-                console.log('Des coins dans le panier, on va rechercher l ordre');
+            if (this.accountService.btc > 0) {
+                console.log('Des coins dans le panier ' + this.accountService.btc.toFixed(4) + ', on va rechercher l ordre');
                 this.customOrder.getLastBuyFill().then((order) => this.newOrderPass(order));
             } else {
                 // si oui, on demande au customeOrder le dernier montant d'achat
@@ -96,12 +96,12 @@ export class GDAXTradeService {
 
         // l'algo est le suivant :
         const getEvolPourcent = this.calculatePourcentEvolution();
+        const currentStopOrderPrice = Number(this.stopOrderCurrentOrder.price);
 
-        if (getEvolPourcent <= 1) {
-            console.log('Benefice inferieur a 1%, on laisse le stoporder a ' + this.stopOrderCurrentOrder.price);
+        // on fait des benefices, on regarde si le stopOrder est bien positionné.
+        if (getEvolPourcent <= 0.8) {
+            console.log('Benefice inferieur a 0.8%, on laisse le stoporder a ' + currentStopOrderPrice.toFixed(2));
         } else {
-            // on fait des benefices, on regarde si le stopOrder est bien positionné.
-            const currentStopOrderPrice = Number(this.stopOrderCurrentOrder.price);
             const lastOrderPrice = Number(this.lastOrder.price);
 
             if (currentStopOrderPrice < lastOrderPrice) {
@@ -144,10 +144,23 @@ export class GDAXTradeService {
         }
     }
 
-    public notifyOrderFinished() {
-        const balance = this.getBalance();
-        console.info('ORDER PASSED => gain/perte ' + balance.toFixed(2));
-        this.lastOrder = undefined;
+    public notifyOrderFinished(order: TradeExecutedMessage) {
+        // TODO : recevoir ici l'order et voir ce qu'on a gagné / perdu
+        if (order.side === 'buy') {
+            console.log('New order BUY - passage en mode VENTE');
+            this.customOrder.getLastBuyFill()
+                .then((lastOrder) => this.newOrderPass(this.lastOrder));
+        }
+
+        if (order.side === 'sell') {
+            console.log('Reception d un ordre de VENTE');
+            const balance = this.getBalance();
+            console.info('ORDER PASSED => gain/perte ' + balance.toFixed(2));
+            this.lastOrder = undefined;                 // on enleve le lastOrder
+            this.stopOrderCurrentOrder = undefined;     // on enleve le stopOrder
+            this.accountService.changeBtc(0);   // on force à zero
+            this.accountService.loadBalance();          // reload de la balance
+        }
     }
 
     public getTendance(): void {

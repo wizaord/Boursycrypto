@@ -1,3 +1,4 @@
+///<reference path="GDAXTradeService.ts"/>
 import { Fill, GDAXFill, Order } from '../model/fill';
 import { GDAXExchangeAPI, GDAXFeed, GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
 import { ConfService } from '../services/ConfService';
@@ -61,7 +62,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
         this.trader.on('Trader.trade-executed', (msg: TradeExecutedMessage) => {
             this.options.logger.log('info', 'Trade executed', JSON.stringify(msg));
             // lorsque la vente d'un ordre a eu lieu
-            this.gdaxTradeService.notifyOrderFinished();
+            this.gdaxTradeService.notifyOrderFinished(msg);
         });
         this.trader.on('Trader.trade-finalized', (msg: TradeFinalizedMessage) => {
             this.options.logger.log('info', 'Order complete', JSON.stringify(msg));
@@ -114,7 +115,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
             side: 'sell',
             productId: this.confService.configurationFile.application.product.name,
             price: priceP.toFixed(2),
-            size: '0.0001',
+            size: nbCoin.toFixed(8),
             time: new Date()
         };
         console.log('positionnement d un stopOrder a ' + priceP + ' pour ' + nbCoin + ' coins');
