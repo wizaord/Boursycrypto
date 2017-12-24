@@ -43,16 +43,16 @@ export class GDAXTradeService {
     public init(): void {
         console.log('Init - GDAXTradeService');
         this.currentPrice = 0;
-        this.negatifWaitPourcent = Number(this.confService.configurationFile.application.stoporder.negatifWaitPourcent);
-        this.beneficeMinPoucent = Number(this.confService.configurationFile.application.stoporder.beneficeMinPoucent);
-        this.beneficeFollowPourcent = Number(this.confService.configurationFile.application.stoporder.beneficeFollowPourcent);
-        this.beneficeMinimumAvantDeplacementStopOrder = Number(this.confService.configurationFile.application.stoporder.beneficeMinimumAvantDeplacementStopOrder)
+        this.negatifWaitPourcent = Number(this.confService.configurationFile.application.trader.stoporder.negatifWaitPourcent);
+        this.beneficeMinPoucent = Number(this.confService.configurationFile.application.trader.stoporder.beneficeMinPoucent);
+        this.beneficeFollowPourcent = Number(this.confService.configurationFile.application.trader.stoporder.beneficeFollowPourcent);
+        this.beneficeMinimumAvantDeplacementStopOrder = Number(this.confService.configurationFile.application.trader.stoporder.beneficeMinimumAvantDeplacementStopOrder)
 
 
         if (this.confService.configurationFile.application.historique.logTendance === 'true') {
             setInterval(getTendance, this.confService.configurationFile.application.historique.computeDelay);
         }
-        setInterval(tradeManHoYeah, 10000);
+        setInterval(tradeManHoYeah, 5);
     }
 
 
