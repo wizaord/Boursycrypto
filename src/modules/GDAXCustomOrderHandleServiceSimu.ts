@@ -37,21 +37,14 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
     }
 
     public init(): void {
-        console.log('Init - GDAXCustomOrderHandleServiceSimu');
-        this.loadLastFill()
+        console.log('Init - GDAXCustomOrderHandleService');
+        this.loadFills()
+            .then((fills) => Promise.resolve(fills[0]))
             .then((fill) => {
                 if (fill.side === 'buy') {
                     // le dernier point est un achat. On envoie donc comme s'il venait de passer
                     console.log('INIT - Le dernier ordre est une commande. Prise en compte par le programme');
-                    this.gdaxTradeService.newOrderPass({
-                        id: fill.order_id,
-                        price: fill.price,
-                        side: fill.side,
-                        fee: fill.fee,
-                        size: fill.size,
-                        time: fill.created_at,
-                        status: 'open',
-                    });
+                    this.gdaxTradeService.newOrderPass(this.mapFillInOrder(fill));
                 }
             });
 
@@ -62,7 +55,7 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
         this.trader.on('Trader.trade-executed', (msg: TradeExecutedMessage) => {
             this.options.logger.log('info', 'Trade executed', JSON.stringify(msg));
             // lorsque la vente d'un ordre a eu lieu
-            this.gdaxTradeService.notifyOrderFinished();
+            this.gdaxTradeService.notifyOrderFinished(msg);
         });
         this.trader.on('Trader.trade-finalized', (msg: TradeFinalizedMessage) => {
             this.options.logger.log('info', 'Order complete', JSON.stringify(msg));
@@ -78,33 +71,6 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
             this.options.logger.log('error', 'Error cancelling orders', err);
         });
 
-    }
-
-    public loadLastFill(): Promise<Fill> {
-        const apiCall = this.gdaxExchangeApi.authCall('GET', `/fills`, {});
-        return Promise.resolve(this.gdaxExchangeApi.handleResponse<Fill[]>(apiCall, null).then((fills: GDAXFill[]) => {
-            // on ne prend que l'ordre le plus recent
-
-            return fills.filter((f) => f.product_id === this.confService.configurationFile.application.product.name)
-                .sort((a, b) => {
-                    return (a.trade_id - b.trade_id) * -1;
-                })
-                .map((value) => {
-                    const customFill: Fill = {
-                        created_at: value.created_at,
-                        order_id: value.order_id,
-                        trade_id: value.trade_id,
-                        side: value.side,
-                        price: value.price,
-                        fee: value.fee,
-                        size: value.size
-                    };
-                    return customFill;
-                })[0];
-        }).catch((reason) => {
-            logError(reason);
-            return null;
-        }));
     }
 
     public cancelAllOrders(): Promise<boolean> {
@@ -124,7 +90,10 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
     }
 
     public getLastBuyFill(): Promise<Order> {
-        return Promise.resolve(null);
+        return this.loadFills()
+            .then((fills) => {
+                return Promise.resolve(fills.filter((value) => value.side === 'buy')[0]);
+            }).then((fill) => Promise.resolve(this.mapFillInOrder(fill)));
     }
 
     private createLiveOrder(priceP: number, nbCoin: number): LiveOrder {
@@ -137,6 +106,45 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
             productId: this.confService.configurationFile.application.product.name,
             status: 'open',
             extra: null
+        };
+    }
+
+    private loadFills(): Promise<Fill[]> {
+        const apiCall = this.gdaxExchangeApi.authCall('GET', `/fills`, {});
+        return Promise.resolve(this.gdaxExchangeApi.handleResponse<Fill[]>(apiCall, null).then((fills: GDAXFill[]) => {
+            // on ne prend que l'ordre le plus recent
+
+            return fills.filter((f) => f.product_id === this.confService.configurationFile.application.product.name)
+                .sort((a, b) => {
+                    return (a.trade_id - b.trade_id) * -1;
+                })
+                .map((value) => {
+                    const customFill: Fill = {
+                        created_at: value.created_at,
+                        order_id: value.order_id,
+                        trade_id: value.trade_id,
+                        side: value.side,
+                        price: value.price,
+                        fee: value.fee,
+                        size: value.size
+                    };
+                    return customFill;
+                });
+        }).catch((reason) => {
+            logError(reason);
+            return Promise.resolve(null);
+        }));
+    }
+
+    private mapFillInOrder(fill: Fill): Order {
+        return {
+            id: fill.order_id,
+            price: fill.price,
+            side: fill.side,
+            fee: fill.fee,
+            size: fill.size,
+            time: fill.created_at,
+            status: 'open',
         };
     }
 }

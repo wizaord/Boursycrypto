@@ -1,4 +1,3 @@
-///<reference path="GDAXTradeService.ts"/>
 import { Fill, GDAXFill, Order } from '../model/fill';
 import { GDAXExchangeAPI, GDAXFeed, GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
 import { ConfService } from '../services/ConfService';
@@ -119,7 +118,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
             time: new Date()
         };
         console.log('positionnement d un stopOrder a ' + priceP + ' pour ' + nbCoin + ' coins');
-        console.log(JSON.stringify(myOrder));
+        // console.log(JSON.stringify(myOrder));
         return this.trader.placeOrder(myOrder).then((order) => {
             // console.log('Live order post : ' + JSON.stringify(order));
             order.price = new BigNumber(priceP.toFixed(10));

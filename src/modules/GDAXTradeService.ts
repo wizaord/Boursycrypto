@@ -20,8 +20,9 @@ export class GDAXTradeService {
     private tendanceService: TendanceService;
     private stopOrderCurrentOrder: LiveOrder;
     private negatifWaitPourcent: number;
-    private beneficeWaitPourcent: number;
+    private beneficeMinPoucent: number;
     private beneficeFollowPourcent: number;
+    private beneficeMinimumAvantDeplacementStopOrder: number;
     private customOrder: GDAXCustomOrderHandleInterface;
     private accountService: GDAXAccountService;
 
@@ -43,14 +44,15 @@ export class GDAXTradeService {
         console.log('Init - GDAXTradeService');
         this.currentPrice = 0;
         this.negatifWaitPourcent = Number(this.confService.configurationFile.application.stoporder.negatifWaitPourcent);
-        this.beneficeWaitPourcent = Number(this.confService.configurationFile.application.stoporder.beneficeWaitPourcent);
+        this.beneficeMinPoucent = Number(this.confService.configurationFile.application.stoporder.beneficeMinPoucent);
         this.beneficeFollowPourcent = Number(this.confService.configurationFile.application.stoporder.beneficeFollowPourcent);
+        this.beneficeMinimumAvantDeplacementStopOrder = Number(this.confService.configurationFile.application.stoporder.beneficeMinimumAvantDeplacementStopOrder)
 
 
         if (this.confService.configurationFile.application.historique.logTendance === 'true') {
             setInterval(getTendance, this.confService.configurationFile.application.historique.computeDelay);
         }
-        setInterval(tradeManHoYeah, 30000);
+        setInterval(tradeManHoYeah, 10000);
     }
 
 
@@ -95,17 +97,18 @@ export class GDAXTradeService {
         }
 
         // l'algo est le suivant :
-        const getEvolPourcent = this.calculatePourcentEvolution();
+        const getEvolPourcent = this.calculatePourcentEvolution(this.currentPrice);
         const currentStopOrderPrice = Number(this.stopOrderCurrentOrder.price);
 
         // on fait des benefices, on regarde si le stopOrder est bien positionné.
-        if (getEvolPourcent <= 0.8) {
-            console.log('Benefice inferieur a 0.8%, on laisse le stoporder a ' + currentStopOrderPrice.toFixed(2));
+        if (getEvolPourcent <= this.beneficeMinimumAvantDeplacementStopOrder) {
+            const coursRequisPourBenefice = Number(this.lastOrder.price) + (Number(this.lastOrder.price) * this.beneficeMinimumAvantDeplacementStopOrder / 100);
+            this.options.logger.log('info', 'Benefice inferieur a ' + this.beneficeMinimumAvantDeplacementStopOrder + '%, on laisse le stoporder a ' + currentStopOrderPrice.toFixed(2) + ' cours requis : ' + coursRequisPourBenefice);
         } else {
             const lastOrderPrice = Number(this.lastOrder.price);
 
             if (currentStopOrderPrice < lastOrderPrice) {
-                const stopPrice = this.calculateStopOrderPrice(this.currentPrice, this.beneficeWaitPourcent);
+                const stopPrice = this.calculateStopOrderPrice(this.currentPrice, this.beneficeMinPoucent);
                 console.log('On positionne le stopOrder pour faire du benefice a ' + stopPrice);
                 this.placeStopOrder(stopPrice);
                 return;
@@ -140,7 +143,7 @@ export class GDAXTradeService {
         if (this.lastOrder !== undefined) {
             const fee = Number(this.lastOrder.fee).toFixed(2);
             const achatPrice = Number(this.lastOrder.price).toFixed(2);
-            this.options.logger.log('info', `COURS EVOL : - achat ${achatPrice} - fee ${fee} - now ${this.currentPrice} - benefice ${this.getBalance().toFixed(2)} - evolution ${this.calculatePourcentEvolution().toFixed(2)}`);
+            this.options.logger.log('info', `COURS EVOL : - achat ${achatPrice} - fee ${fee} - now ${this.currentPrice} - benefice ${this.getBalance(this.currentPrice).toFixed(2)} - evolution ${this.calculatePourcentEvolution(this.currentPrice).toFixed(2)}`);
         }
     }
 
@@ -149,13 +152,13 @@ export class GDAXTradeService {
         if (order.side === 'buy') {
             console.log('New order BUY - passage en mode VENTE');
             this.customOrder.getLastBuyFill()
-                .then((lastOrder) => this.newOrderPass(this.lastOrder));
+                .then((newOrder) => this.newOrderPass(newOrder));
         }
 
         if (order.side === 'sell') {
             console.log('Reception d un ordre de VENTE');
-            const balance = this.getBalance();
-            console.info('ORDER PASSED => gain/perte ' + balance.toFixed(2));
+            const balance = this.getBalance(Number(order.price));
+            console.info('ORDER PASSED => gain/perte ' + balance.toFixed(2) + ' evolution : ' + this.calculatePourcentEvolution(Number(order.price)));
             this.lastOrder = undefined;                 // on enleve le lastOrder
             this.stopOrderCurrentOrder = undefined;     // on enleve le stopOrder
             this.accountService.changeBtc(0);   // on force à zero
@@ -184,13 +187,13 @@ export class GDAXTradeService {
         console.log(printSeparator());
     }
 
-    public getBalance(): number {
+    public getBalance(currentPrice: number): number {
         const lastOrderPrice: number = Number(this.lastOrder.price);
         const quantity = Number(this.lastOrder.size);
         const feeAchat = Number(this.lastOrder.fee);
-        const feeVente = quantity * this.currentPrice * 0.0025;
+        const feeVente = quantity * currentPrice * 0.0025;
 
-        const prixVente = (quantity * this.currentPrice) - feeVente;
+        const prixVente = (quantity * currentPrice) - feeVente;
         const coutAchat = (quantity * lastOrderPrice) + feeAchat;
         return prixVente - coutAchat;
     }
@@ -231,8 +234,8 @@ export class GDAXTradeService {
         return price - ((price * pourcent) / 100);
     }
 
-    private calculatePourcentEvolution(): number {
-        return ((this.currentPrice * 100) / Number(this.lastOrder.price)) - 100;
+    private calculatePourcentEvolution(price: number): number {
+        return ((price * 100) / Number(this.lastOrder.price)) - 100;
     }
 }
 

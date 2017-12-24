@@ -8,7 +8,8 @@ application:
     type: LTC
   stoporder:
     negatifWaitPourcent: 2.5
-    beneficeWaitPourcent: 0.5
+    beneficeMinimumAvantDeplacementStopOrder: 1.5
+    beneficeMinPoucent: 0.5
     beneficeFollowPourcent: 1
   historique:
     computeDelay: 60000
