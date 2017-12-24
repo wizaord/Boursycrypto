@@ -7,11 +7,15 @@ application:
     name: LTC-EUR
     type: LTC
   trader:
-    stoporder:
-      negatifWaitPourcent: 2.5
-      beneficeMinimumAvantDeplacementStopOrder: 1.5
-      beneficeMinPoucent: 0.5
-      beneficeFollowPourcent: 1
+    modeVisualisation: true
+    vente:
+      secureStopOrder:
+        activate: true
+        pourcent: 2.5
+      benefice:
+        pourcentBeforeStartVenteMode: 1.5
+        initialPourcent: 0.5
+        followingPourcent: 1
   historique:
     logTendance: false
     computeDelay: 60000

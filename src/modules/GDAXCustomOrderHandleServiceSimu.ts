@@ -44,7 +44,7 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
                 if (fill.side === 'buy') {
                     // le dernier point est un achat. On envoie donc comme s'il venait de passer
                     console.log('INIT - Le dernier ordre est une commande. Prise en compte par le programme');
-                    this.gdaxTradeService.newOrderPass(this.mapFillInOrder(fill));
+                    this.gdaxTradeService.notifyNewOrder(this.mapFillInOrder(fill));
                 }
             });
 

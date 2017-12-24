@@ -50,7 +50,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
                 if (fill.side === 'buy') {
                     // le dernier point est un achat. On envoie donc comme s'il venait de passer
                     console.log('INIT - Le dernier ordre est une commande. Prise en compte par le programme');
-                    this.gdaxTradeService.newOrderPass(this.mapFillInOrder(fill));
+                    this.gdaxTradeService.notifyNewOrder(this.mapFillInOrder(fill));
                 }
             });
 
@@ -114,7 +114,8 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
             side: 'sell',
             productId: this.confService.configurationFile.application.product.name,
             price: priceP.toFixed(2),
-            size: nbCoin.toFixed(8),
+            // size: nbCoin.toFixed(8),
+            size: '0.0001',
             time: new Date()
         };
         console.log('positionnement d un stopOrder a ' + priceP + ' pour ' + nbCoin + ' coins');

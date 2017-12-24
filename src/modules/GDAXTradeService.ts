@@ -9,6 +9,8 @@ import { LiveOrder } from 'gdax-trading-toolkit/build/src/lib';
 import { GDAXAccountService } from './GDAXAccountService';
 import { delay } from 'gdax-trading-toolkit/build/src/utils/promises';
 import { GDAXCustomOrderHandleInterface } from './IGDAXCustomOrderHandleService';
+import MathUtils from '../utilities/MathUtils';
+import { E_TRADEMODE, E_TRADESELLMODE } from './E_TRADEMODE';
 
 export class GDAXTradeService {
 
@@ -19,12 +21,16 @@ export class GDAXTradeService {
     private confService: ConfService;
     private tendanceService: TendanceService;
     private stopOrderCurrentOrder: LiveOrder;
-    private negatifWaitPourcent: number;
-    private beneficeMinPoucent: number;
-    private beneficeFollowPourcent: number;
-    private beneficeMinimumAvantDeplacementStopOrder: number;
     private customOrder: GDAXCustomOrderHandleInterface;
     private accountService: GDAXAccountService;
+
+    private traderMode: E_TRADEMODE;
+
+    private pourcentBeforeStartVenteMode: number;
+    private negatifWaitPourcent: number;
+    private beneficeMinPoucent: number;
+    private activateSecureVenteMode: boolean;
+    private beneficeFollowPourcent: number;
 
     constructor() {
         console.log('Create - GDAXTradeService');
@@ -42,17 +48,19 @@ export class GDAXTradeService {
 
     public init(): void {
         console.log('Init - GDAXTradeService');
+        this.traderMode = E_TRADEMODE.NOORDER;
         this.currentPrice = 0;
-        this.negatifWaitPourcent = Number(this.confService.configurationFile.application.trader.stoporder.negatifWaitPourcent);
-        this.beneficeMinPoucent = Number(this.confService.configurationFile.application.trader.stoporder.beneficeMinPoucent);
-        this.beneficeFollowPourcent = Number(this.confService.configurationFile.application.trader.stoporder.beneficeFollowPourcent);
-        this.beneficeMinimumAvantDeplacementStopOrder = Number(this.confService.configurationFile.application.trader.stoporder.beneficeMinimumAvantDeplacementStopOrder)
+        this.negatifWaitPourcent = Number(this.confService.configurationFile.application.trader.vente.secureStopOrder.pourcent);
+        this.pourcentBeforeStartVenteMode = Number(this.confService.configurationFile.application.trader.vente.benefice.pourcentBeforeStartVenteMode);
+        this.activateSecureVenteMode = Boolean(this.confService.configurationFile.application.trader.vente.secureStopOrder.activate);
+        this.beneficeMinPoucent = Number(this.confService.configurationFile.application.trader.vente.benefice.initialPourcent);
+        this.beneficeFollowPourcent = Number(this.confService.configurationFile.application.trader.vente.benefice.followingPourcent);
 
 
         if (this.confService.configurationFile.application.historique.logTendance === 'true') {
             setInterval(getTendance, this.confService.configurationFile.application.historique.computeDelay);
         }
-        setInterval(tradeManHoYeah, 5);
+        setInterval(tradeManHoYeah, 5000);
     }
 
 
@@ -67,84 +75,50 @@ export class GDAXTradeService {
      *  - si on est en bénéfice, on positionne le stopOrder juste pour gagner de l'argent
      *      - et ensuite on fait monter ce stopOrder en fonction de la courbe
      */
-    public tradeManHoYeah(): void {
+    public doTrading(): void {
         // si on a pas de cours, on ne fait rien. Sans prix, on ne peut rien faire
         if (this.currentPrice === 0) {
             this.options.logger.log('info', 'en attente d une premiere transaction pour connaitre le cours');
             return;
         }
-        // si aucun order en cours, on ne fait rien. On verra dans la V2
-        if (this.lastOrder === undefined) {
-            // on va verifier si on a pas encore des coins.
-            if (this.accountService.btc > 0) {
-                console.log('Des coins dans le panier ' + this.accountService.btc.toFixed(4) + ', on va rechercher l ordre');
-                this.customOrder.getLastBuyFill().then((order) => this.newOrderPass(order));
-            } else {
-                // si oui, on demande au customeOrder le dernier montant d'achat
-                this.options.logger.log('info', 'Aucun ordre en cours. Rien à faire');
-            }
-            return;
-        }
 
-        // il est possible qu'il n'y ait aucun stop order à ce moment. Si au debut on a pas pu le mettre car le court est vraiment tres tres bas
-        this.logBalance();
-
-        // affichage du status en cours
-        if (this.stopOrderCurrentOrder === undefined) {
-            const stopPrice = this.calculateStopOrderPrice(this.currentPrice, this.negatifWaitPourcent);
-            this.placeStopOrder(stopPrice);
-            return;
-        }
-
-        // l'algo est le suivant :
-        const getEvolPourcent = this.calculatePourcentEvolution(this.currentPrice);
-        const currentStopOrderPrice = Number(this.stopOrderCurrentOrder.price);
-
-        // on fait des benefices, on regarde si le stopOrder est bien positionné.
-        if (getEvolPourcent <= this.beneficeMinimumAvantDeplacementStopOrder) {
-            const coursRequisPourBenefice = Number(this.lastOrder.price) + (Number(this.lastOrder.price) * this.beneficeMinimumAvantDeplacementStopOrder / 100);
-            this.options.logger.log('info', 'Benefice inferieur a ' + this.beneficeMinimumAvantDeplacementStopOrder + '%, on laisse le stoporder a ' + currentStopOrderPrice.toFixed(2) + ' cours requis : ' + coursRequisPourBenefice);
-        } else {
-            const lastOrderPrice = Number(this.lastOrder.price);
-
-            if (currentStopOrderPrice < lastOrderPrice) {
-                const stopPrice = this.calculateStopOrderPrice(this.currentPrice, this.beneficeMinPoucent);
-                console.log('On positionne le stopOrder pour faire du benefice a ' + stopPrice);
-                this.placeStopOrder(stopPrice);
-                return;
-
-            }
-            // on est dans les benefices et on a le stop order deja positionne pour assurer notre argent.
-            // on fait donc monter le stop en fonction de la hausse de la courbe
-            const newStopOrderPrice = this.calculateStopOrderPrice(this.currentPrice, this.beneficeFollowPourcent);
-
-            if (newStopOrderPrice <= currentStopOrderPrice) {
-                this.options.logger.log('info', 'Cours en chute, on ne repositionne pas le stopOrder qui est a ' + currentStopOrderPrice);
-            } else {
-                this.placeStopOrder(newStopOrderPrice);
-                return;
-            }
+        switch (this.traderMode) {
+            case E_TRADEMODE.NOORDER:
+                this.options.logger.log('info', 'MODE UNKNOWN- determination du mode de fonctionnement');
+                this.determineTradeMode();
+                break;
+            case E_TRADEMODE.ACHAT:
+                this.options.logger.log('info', 'MODE ACHAT- determination du mode de fonctionnement');
+                break;
+            case E_TRADEMODE.VENTE:
+                this.logVenteEvolution();
+                if (this.confService.configurationFile.application.trader.modeVisualisation === 'false') {
+                    this.options.logger.log('info', 'MODE VENTE');
+                    this.doTradingSell();
+                }
+                break;
         }
     }
 
     public notifyNewTradeMessage(trade: TradeMessage) {
-        // sauvegarde de la derniere valeur du cours
         this.currentPrice = Number(trade.price);
     }
 
-    public newOrderPass(order: Order): void {
-        console.log('Receive new order ' + JSON.stringify(order));
-        // refresh du compte utilisateur
+    public notifyNewOrder(order: Order): void {
+        this.options.logger.log('info', 'NEW ORDER - Receive order ' + JSON.stringify(order));
         this.accountService.loadBalance();
         this.lastOrder = order;
+        this.traderMode = E_TRADEMODE.VENTE;
     }
 
-    public logBalance(): void {
-        if (this.lastOrder !== undefined) {
-            const fee = Number(this.lastOrder.fee).toFixed(2);
-            const achatPrice = Number(this.lastOrder.price).toFixed(2);
-            this.options.logger.log('info', `COURS EVOL : - achat ${achatPrice} - fee ${fee} - now ${this.currentPrice} - benefice ${this.getBalance(this.currentPrice).toFixed(2)} - evolution ${this.calculatePourcentEvolution(this.currentPrice).toFixed(2)}`);
-        }
+    public logVenteEvolution(): void {
+        const fee = MathUtils.convertBigJSInStr(this.lastOrder.fee, 2);
+        const achatPrice = MathUtils.convertBigJSInStr(this.lastOrder.price, 2);
+        const evolution = MathUtils.calculatePourcentDifference(this.currentPrice, Number(this.lastOrder.price));
+
+        let message: string = `COURS EVOL : - achat ${achatPrice} - fee ${fee} - now ${this.currentPrice}`;
+        message = `${message} - benefice ${this.getBalance(this.currentPrice).toFixed(2)} - evolution ${evolution.toFixed(2)}`;
+        this.options.logger.log('info', message);
     }
 
     public notifyOrderFinished(order: TradeExecutedMessage) {
@@ -152,21 +126,20 @@ export class GDAXTradeService {
         if (order.side === 'buy') {
             console.log('New order BUY - passage en mode VENTE');
             this.customOrder.getLastBuyFill()
-                .then((newOrder) => this.newOrderPass(newOrder));
+                .then((newOrder) => this.notifyNewOrder(newOrder));
         }
 
         if (order.side === 'sell') {
-            console.log('Reception d un ordre de VENTE');
             const balance = this.getBalance(Number(order.price));
-            console.info('ORDER PASSED => gain/perte ' + balance.toFixed(2) + ' evolution : ' + this.calculatePourcentEvolution(Number(order.price)));
-            this.lastOrder = undefined;                 // on enleve le lastOrder
-            this.stopOrderCurrentOrder = undefined;     // on enleve le stopOrder
+            this.options.logger.log('info', 'ORDER PASSED => gain/perte ' + balance.toFixed(2) + ' evolution : ' + MathUtils.calculatePourcentDifference(Number(order.price), Number(this.lastOrder.price)));
             this.accountService.changeBtc(0);   // on force à zero
             this.accountService.loadBalance();          // reload de la balance
+            this.stopOrderCurrentOrder = undefined;
+            this.traderMode = E_TRADEMODE.NOORDER;
         }
     }
 
-    public getTendance(): void {
+    public tendanceLog(): void {
         if (this.currentPrice === 0) {
             console.log('Toujours pas recu de trade. Pas de possibilite d afficher la tendance');
             return;
@@ -206,21 +179,21 @@ export class GDAXTradeService {
      * Fonction qui positionne un stopOrder a XX% en dessous du court actuel.
      * Le XX% est configurable dans le fichier de configuration
      */
-    public placeStopOrder(price: number) {
+    public stopOrderPlace(price: number) {
         // si un stop order est deja present, il faut le supprimer
         if (this.stopOrderCurrentOrder !== undefined) {
             this.customOrder.cancelOrder(this.stopOrderCurrentOrder.id)
                 .then((a) => delay(1000))
                 .then((value) => {
                     this.stopOrderCurrentOrder = undefined;
-                    this.createStopOrder(price);
+                    this.stopOrderCreate(price);
                 });
         } else {
-            this.createStopOrder(price);
+            this.stopOrderCreate(price);
         }
     }
 
-    public createStopOrder(price: number) {
+    public stopOrderCreate(price: number) {
         this.customOrder.placeStopSellOrder(price, this.accountService.btc).then((liveOrder) => {
             this.stopOrderCurrentOrder = liveOrder;
         }).catch((reason) => {
@@ -230,17 +203,123 @@ export class GDAXTradeService {
         });
     }
 
-    public calculateStopOrderPrice(price: number, pourcent: number): number {
-        return price - ((price * pourcent) / 100);
+
+    /**
+     * Fonction qui permet de determiner dans quel mode de fonctionnement on se trouve
+     */
+    private determineTradeMode() {
+        // on va verifier si on a pas encore des coins.
+        if (this.accountService.btc > 0) {
+            this.options.logger.log('info', 'CHECK MODE - coin in wallet <' + this.accountService.btc.toFixed(4) + '>. Looking for last buy order');
+            this.customOrder.getLastBuyFill().then((order) => {
+                this.options.logger.log('info', 'CHECK MODE - Find last order buy. Inject order in this AWESOME project');
+                this.notifyNewOrder(order);
+            });
+        } else {
+            // si oui, on demande au customeOrder le dernier montant d'achat
+            this.options.logger.log('info', 'Aucun ordre en cours. Rien à faire');
+        }
     }
 
-    private calculatePourcentEvolution(price: number): number {
-        return ((price * 100) / Number(this.lastOrder.price)) - 100;
+    /**
+     * realisation du trading en mode VENTE
+     */
+    private doTradingSell() {
+        const isStopOrderPlaced = this.stopOrderCurrentOrder === undefined;
+
+        // positionnement du stop order de secours si activé dans les logs
+        if (this.activateSecureVenteMode && isStopOrderPlaced) {
+            const stopPrice = MathUtils.calculateRemovePourcent(this.currentPrice, this.negatifWaitPourcent);
+            this.options.logger.log('info', `MODE VENTE - Place a SECURE stop order to ${stopPrice}`);
+            this.stopOrderPlace(stopPrice);
+            return;
+        }
+
+        // on verifie si on est deja en benefice ou non
+        //      - possible si stopOrder n'existe pas              et benefice supérieur à la valeur configurée dans le fichier de configuration
+        //      - possible si stopOrder inférieur au prix d'achat et benefice supérieur à la valeur configurée dans le fichier de configuration
+        //      - possible si le prix du stopOrder est supérieur au prix d'achat => deja en mode benefice
+        const sellMode = this.determineTradeSellMode();
+        switch (sellMode) {
+            case E_TRADESELLMODE.WAITING_FOR_BENEFICE:
+                const coursRequisPourBenefice = MathUtils.calculateAddPourcent(Number(this.lastOrder.price), this.pourcentBeforeStartVenteMode);
+                this.options.logger.log('info', 'MODE VENTE - Not enougth benef. Waiting benefice to : ' + coursRequisPourBenefice);
+                break;
+            case E_TRADESELLMODE.BENEFICE:
+                this.options.logger.log('info', 'MODE VENTE - Benefice OK');
+                this.doTradingSellBenefice();
+                break;
+        }
+    }
+
+    /**
+     * Fonction de gestion quand on est en mode vente et BENEFICE
+     * Si le stopOrder n'est pas positionné ou inférieur au prix du lastOrderPrice, on le position au seuil minimal
+     * Ensuite on fait monter ce stopOrder en fonction du cours
+     */
+    private doTradingSellBenefice() {
+        const lastOrderPrice = Number(this.lastOrder.price);
+        const seuilStopPrice = MathUtils.calculateAddPourcent(lastOrderPrice, this.beneficeMinPoucent);
+        const isStopOrderPlaced = (this.stopOrderCurrentOrder !== undefined);
+
+        // test si aucun stop order n'est positionné
+        if (!isStopOrderPlaced) {
+            // positionnement d'un stop order au prix seuil
+            this.stopOrderPlace(seuilStopPrice);
+            return;
+        }
+
+        const currentStopOrderPrice = Number(this.stopOrderCurrentOrder.price);
+
+        // test si le stop order est le stop de secours
+        if (isStopOrderPlaced && currentStopOrderPrice < lastOrderPrice) {
+            this.stopOrderPlace(seuilStopPrice);
+            return;
+        }
+
+        // on est dans les benefices et on a le stop order deja positionne pour assurer notre argent.
+        // on fait donc monter le stop en fonction de la hausse de la courbe
+        const newStopOrderPrice = MathUtils.calculateRemovePourcent(this.currentPrice, this.beneficeFollowPourcent);
+
+        if (newStopOrderPrice <= currentStopOrderPrice) {
+            this.options.logger.log('info', 'Cours en chute, on ne repositionne pas le stopOrder qui est a ' + currentStopOrderPrice);
+        } else {
+            this.stopOrderPlace(newStopOrderPrice);
+            return;
+        }
+    }
+
+    /**
+     * Fonction qui détermine le mode de vente. Soit en benefice et on suit la courbe. Soit en mode attente
+     * En mode benefice et on suit la courbe si :
+     *      - possible si stopOrder n'existe pas              et benefice supérieur à la valeur configurée dans le fichier de configuration
+     *      - possible si stopOrder inférieur au prix d'achat et benefice supérieur à la valeur configurée dans le fichier de configuration
+     *      - possible si le prix du stopOrder est supérieur au prix d'achat => deja en mode benefice
+     * @returns {E_TRADESELLMODE}
+     */
+    private determineTradeSellMode(): E_TRADESELLMODE {
+        const coursRequisPourBenefice = MathUtils.calculateAddPourcent(Number(this.lastOrder.price), this.pourcentBeforeStartVenteMode);
+        const lastOrderPrice = Number(this.lastOrder.price);
+        const isStopOrderPlaced = (this.stopOrderCurrentOrder !== undefined);
+
+        if (isStopOrderPlaced) {
+            const stopOrderPrice = Number(this.stopOrderCurrentOrder.price);
+            if (stopOrderPrice > lastOrderPrice) {
+                // on est dans le cas où on a déjà été en BENEFICE. On y reste
+                return E_TRADESELLMODE.BENEFICE;
+            }
+        }
+        // le stop order est posé ou pas. On est en bénéfice uniquement si le cours le permet
+        if (this.currentPrice >= coursRequisPourBenefice) {
+            return E_TRADESELLMODE.BENEFICE;
+        }
+        // on a pas engendré assez de bénéfices
+        return E_TRADESELLMODE.WAITING_FOR_BENEFICE;
     }
 }
 
 function getTendance() {
-    GDAXTradeService._instance.getTendance();
+    GDAXTradeService._instance.tendanceLog();
 }
 
 function logError(err: any) {
@@ -253,5 +332,5 @@ function logError(err: any) {
 }
 
 function tradeManHoYeah() {
-    GDAXTradeService._instance.tradeManHoYeah();
+    GDAXTradeService._instance.doTrading();
 }
