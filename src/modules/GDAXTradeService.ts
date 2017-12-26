@@ -57,7 +57,7 @@ export class GDAXTradeService {
         this.beneficeFollowPourcent = Number(this.confService.configurationFile.application.trader.vente.benefice.followingPourcent);
 
 
-        if (this.confService.configurationFile.application.historique.logTendance === 'true') {
+        if (Boolean(this.confService.configurationFile.application.historique.logTendance)) {
             setInterval(getTendance, this.confService.configurationFile.application.historique.computeDelay);
         }
         setInterval(tradeManHoYeah, 5000);
@@ -88,11 +88,12 @@ export class GDAXTradeService {
                 this.determineTradeMode();
                 break;
             case E_TRADEMODE.ACHAT:
-                this.options.logger.log('info', 'MODE ACHAT- determination du mode de fonctionnement');
+                this.options.logger.log('info', 'MODE ACHAT - cours ' + this.currentPrice.toFixed(2));
+                this.doTradingBuy();
                 break;
             case E_TRADEMODE.VENTE:
                 this.logVenteEvolution();
-                if (this.confService.configurationFile.application.trader.modeVisualisation === 'false') {
+                if (! Boolean(this.confService.configurationFile.application.trader.modeVisualisation)) {
                     this.options.logger.log('info', 'MODE VENTE');
                     this.doTradingSell();
                 }
@@ -208,6 +209,7 @@ export class GDAXTradeService {
      * Fonction qui permet de determiner dans quel mode de fonctionnement on se trouve
      */
     private determineTradeMode() {
+        // this.traderMode = E_TRADEMODE.ACHAT;
         // on va verifier si on a pas encore des coins.
         if (this.accountService.btc > 0) {
             this.options.logger.log('info', 'CHECK MODE - coin in wallet <' + this.accountService.btc.toFixed(4) + '>. Looking for last buy order');
@@ -216,8 +218,8 @@ export class GDAXTradeService {
                 this.notifyNewOrder(order);
             });
         } else {
-            // si oui, on demande au customeOrder le dernier montant d'achat
-            this.options.logger.log('info', 'Aucun ordre en cours. Rien à faire');
+            this.options.logger.log('info', 'CHECK MODE - No Btc in wallet. Set en ACHAT MODE');
+            this.traderMode = E_TRADEMODE.ACHAT;
         }
     }
 
@@ -315,6 +317,25 @@ export class GDAXTradeService {
         }
         // on a pas engendré assez de bénéfices
         return E_TRADESELLMODE.WAITING_FOR_BENEFICE;
+    }
+
+    /**
+     * Fonction qui permet de déterminer le moment où il faut acheter
+     */
+    private doTradingBuy() {
+        // on regarde les tendances sur les dernières minutes,
+        // Si elles sont toutes baissière et que la dernière est une grosse chute > 2% (sur la minutes)
+        // on positionne un stopOrder d'achat
+        // et on suit la courbe baissière
+        const everyMinutesTendances = this.tendanceService.getLastEveryMinutesTendances(10);
+        this.options.logger.log('info', 'Retrieve ' + everyMinutesTendances.length + ' tendances');
+        this.tendanceAchatLog(everyMinutesTendances);
+    }
+
+    private tendanceAchatLog(tendances: Tendance[]): void {
+        tendances.forEach((tendance) => {
+            console.log('TENDANCE - Date : ' + tendance.endDate.getMinutes() + ' average: ' + tendance.averagePrice.toFixed(2) + ' prix: ' + tendance.evolPrice.toFixed(2) + ' %:' + tendance.evolPourcentage.toFixed(2));
+        });
     }
 }
 

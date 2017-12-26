@@ -10,7 +10,6 @@ import { delay } from 'gdax-trading-toolkit/build/src/utils/promises';
 import { GDAXCustomOrderHandleInterface } from './IGDAXCustomOrderHandleService';
 
 export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterface {
-    
     trader: Trader;
     private gdaxExchangeApi: GDAXExchangeAPI;
     private options: GDAXFeedConfig;
@@ -53,7 +52,6 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
                     this.gdaxTradeService.notifyNewOrder(this.mapFillInOrder(fill));
                 }
             });
-
 
         this.trader.on('Trader.order-placed', (msg: LiveOrder) => {
             this.options.logger.log('info', 'Order placed', JSON.stringify(msg));
@@ -114,8 +112,8 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
             side: 'sell',
             productId: this.confService.configurationFile.application.product.name,
             price: priceP.toFixed(2),
-            // size: nbCoin.toFixed(8),
-            size: '0.0001',
+            size: nbCoin.toFixed(8),
+            // size: '0.0001',
             time: new Date()
         };
         console.log('positionnement d un stopOrder a ' + priceP + ' pour ' + nbCoin + ' coins');

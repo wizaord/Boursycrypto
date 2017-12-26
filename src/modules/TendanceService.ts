@@ -3,6 +3,7 @@ import { ConfService } from '../services/ConfService';
 import { TradeMessage } from 'gdax-trading-toolkit/build/src/core';
 import * as BigNumber from 'bignumber.js';
 import LinkedList from 'typescript-collections/dist/lib/LinkedList';
+import DateUtils from '../utilities/DateUtils';
 import Collections = require('typescript-collections');
 
 export class TendanceService {
@@ -45,7 +46,7 @@ export class TendanceService {
 
     public computeTradeMessagesInHistoriqueCompute(): void {
         let computeTic: HistoriqueCompute = {
-            generatedDate: new Date(),
+            generatedDate: DateUtils.getTimeAroundSecond(new Date()),
             nbTic: 0,
             averagePrice: 0,
             volumeEchange: 0,
@@ -63,7 +64,7 @@ export class TendanceService {
                 return;
             }
             computeTic = this._computeLst.last();
-            computeTic.generatedDate = new Date();
+            computeTic.generatedDate = DateUtils.getTimeAroundSecond(new Date());
             computeTic.nbSell = computeTic.nbBuy = computeTic.nbTic = computeTic.volumeEchange = 0;
         } else {
             while (this.ticLst.size() !== 0) {
@@ -104,6 +105,38 @@ export class TendanceService {
     }
 
     /**
+     * Retourne un tableau de tendance de toutes les minutes.
+     * @param {number} nbTendances : le nombre de tendance à retourner
+     * @returns {Tendance[]}
+     */
+    public getLastEveryMinutesTendances(nbTendances: number): Tendance[] {
+        const tendancesTab: Tendance[] = [];
+        if (this._computeLst.size() !== 0) {
+            const lastDate = this._computeLst.last().generatedDate;
+            for (let i = 0 ; i < nbTendances; i++) {
+                const endDate = new Date(lastDate.getTime() - (i * 60000));
+                const beginDate = new Date(lastDate.getTime() - ((i + 1) * 60000));
+                const calculatedTendance = this.calculeTendance(beginDate, endDate);
+                if (calculatedTendance !== null) {
+                    tendancesTab.push(calculatedTendance);
+                }
+            }
+        }
+        return tendancesTab;
+    }
+
+    /**
+     * permet de recuperer la tendance sur les 2 dernières minutes
+     * @returns {number}
+     */
+    public getLast2MinutesTendances(): Tendance {
+        const currentDate = new Date();
+        const lastMinute = this._computeLst.last().generatedDate;
+        const last2MinuDate = new Date(currentDate.getTime() - 2 * 60000);
+        return this.calculeTendance(last2MinuDate, lastMinute);
+    }
+
+    /**
      * permet de recuperer la tendance sur les 10 dernières minutes
      * @returns {number}
      */
@@ -137,17 +170,6 @@ export class TendanceService {
 
     }
 
-    /**
-     * permet de recuperer la tendance sur les 2 dernières minutes
-     * @returns {number}
-     */
-    public getLast2MinutesTendances(): Tendance {
-        const currentDate = new Date();
-        const lastMinute = this._computeLst.last().generatedDate;
-        const last2MinuDate = new Date(currentDate.getTime() - 2 * 60000);
-        return this.calculeTendance(last2MinuDate, lastMinute);
-    }
-
     private mapTradeMessageInHistoricTic(tradeMsg: TradeMessage): HistoriqueTic {
         return {
             receiveDate: tradeMsg.time,
@@ -169,18 +191,35 @@ export class TendanceService {
             endDate = new Date();
         }
 
-        const histoComputeLst = this.getHistoriqueComputes(beginDate, endDate);
-        if (histoComputeLst.length === 0) {
-            console.log('Unable to get computeHisto between beginDate ' + JSON.stringify(beginDate) + ' and endDate ' + JSON.stringify(endDate));
+        if (this._computeLst.size() === 0) {
             return null;
         }
 
-        // console.log(JSON.stringify(histoComputeLst));
+        const firstListDate = DateUtils.getTimeAroundSecond(this._computeLst.first().generatedDate);
+        const beginDateSec = DateUtils.getTimeAroundSecond(beginDate);
+        const endDateSec = DateUtils.getTimeAroundSecond(endDate);
+
+        // si la date de debut n'existe pas, on ne remonte pas de tendance
+        // console.log('First date ' + firstListDate.getTime());
+        // console.log('Begin Date ' + beginDateSec.getTime());
+        // console.log('End date ' + endDateSec.getTime());
+        if (firstListDate.getTime() > beginDateSec.getTime()) {
+            return null;
+        }
+
+        const histoComputeLst = this.getHistoriqueComputes(beginDateSec, endDateSec);
+        if (histoComputeLst.length === 0) {
+            console.log('Unable to get computeHisto between beginDate ' + JSON.stringify(beginDateSec) + ' and endDate ' + JSON.stringify(endDateSec));
+            return null;
+        }
 
         const oldElement = histoComputeLst[0];
         const lastElement = histoComputeLst[histoComputeLst.length - 1];
 
         const tendance: Tendance = {
+            beginDate: beginDateSec,
+            endDate: endDateSec,
+            averagePrice: histoComputeLst.map((v) => v.averagePrice).reduce((previousValue, currentValue) => previousValue + currentValue) / histoComputeLst.length,
             evolPrice: 0,
             evolPourcentage: 0,
             type: '',

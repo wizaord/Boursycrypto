@@ -20,6 +20,9 @@ export interface HistoriqueCompute {
 }
 
 export interface Tendance {
+    beginDate: Date;
+    endDate: Date;
+    averagePrice: number;
     type: string;
     evolPrice: number;
     evolPourcentage: number;
