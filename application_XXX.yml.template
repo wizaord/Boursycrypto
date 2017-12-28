@@ -16,6 +16,11 @@ application:
         pourcentBeforeStartVenteMode: 1.5
         initialPourcent: 0.5
         followingPourcent: 1
+    achat:
+      activate: true
+      maxBuyAmount: 5
+      pourcentageChuteCoursStopOrder: 3
   historique:
     logTendance: false
     computeDelay: 60000
+    maxHistoriqueComputeKeepInMemory: 100

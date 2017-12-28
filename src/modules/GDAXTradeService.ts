@@ -60,7 +60,7 @@ export class GDAXTradeService {
         if (Boolean(this.confService.configurationFile.application.historique.logTendance)) {
             setInterval(getTendance, this.confService.configurationFile.application.historique.computeDelay);
         }
-        setInterval(tradeManHoYeah, 5000);
+        setInterval(tradeManHoYeah, 10000);
     }
 
 

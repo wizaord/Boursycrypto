@@ -84,6 +84,12 @@ export class TendanceService {
             computeTic.averagePrice = totalPrice / computeTic.nbTic;
         }
         this._computeLst.add(computeTic);
+
+        // remove old HistoriqueTendance
+        while (this._computeLst.size() > Number(this.confService.configurationFile.application.historique.computeDelay.maxHistoriqueComputeKeepInMemory)) {
+            this._computeLst.removeElementAtIndex(0);
+        }
+
     }
 
     /**

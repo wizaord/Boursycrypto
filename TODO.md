@@ -6,3 +6,6 @@
 - Pouvoir mettre une limite aux ordres d'achat
 
 
+FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory
+npm ERR! code ELIFECYCLE
+npm ERR! errno 3
