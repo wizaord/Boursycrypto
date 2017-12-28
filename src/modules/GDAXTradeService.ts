@@ -11,6 +11,7 @@ import { delay } from 'gdax-trading-toolkit/build/src/utils/promises';
 import { GDAXCustomOrderHandleInterface } from './IGDAXCustomOrderHandleService';
 import MathUtils from '../utilities/MathUtils';
 import { E_TRADEMODE, E_TRADESELLMODE } from './E_TRADEMODE';
+import { SlackService } from '../services/SlackService';
 
 export class GDAXTradeService {
 
@@ -107,6 +108,7 @@ export class GDAXTradeService {
 
     public notifyNewOrder(order: Order): void {
         this.options.logger.log('info', 'NEW ORDER - Receive order ' + JSON.stringify(order));
+        SlackService._instance.postMessage('NEW ORDER - Handle order ' + JSON.stringify(order));
         this.accountService.loadBalance();
         this.lastOrder = order;
         this.traderMode = E_TRADEMODE.VENTE;
@@ -132,7 +134,11 @@ export class GDAXTradeService {
 
         if (order.side === 'sell') {
             const balance = this.getBalance(Number(order.price));
-            this.options.logger.log('info', 'ORDER PASSED => gain/perte ' + balance.toFixed(2) + ' evolution : ' + MathUtils.calculatePourcentDifference(Number(order.price), Number(this.lastOrder.price)));
+            const messageStr = 'ORDER PASSED => gain/perte ' + balance.toFixed(2) + ' evol: ' + MathUtils.calculatePourcentDifference(Number(order.price), Number(this.lastOrder.price));
+
+            this.options.logger.log('info', messageStr);
+            SlackService._instance.postMessage(messageStr);
+
             this.accountService.changeBtc(0);   // on force à zero
             this.accountService.loadBalance();          // reload de la balance
             this.stopOrderCurrentOrder = undefined;

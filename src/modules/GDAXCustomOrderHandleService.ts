@@ -8,6 +8,7 @@ import { printSeparator } from 'gdax-trading-toolkit/build/src/utils';
 import * as BigNumber from 'bignumber.js';
 import { delay } from 'gdax-trading-toolkit/build/src/utils/promises';
 import { GDAXCustomOrderHandleInterface } from './IGDAXCustomOrderHandleService';
+import { SlackService } from '../services/SlackService';
 
 export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterface {
     trader: Trader;
@@ -116,7 +117,10 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
             // size: '0.0001',
             time: new Date()
         };
+
         console.log('positionnement d un stopOrder a ' + priceP + ' pour ' + nbCoin + ' coins');
+        SlackService._instance.postMessage('positionnement d un stopOrder a ' + priceP + ' pour ' + nbCoin + ' coins');
+
         // console.log(JSON.stringify(myOrder));
         return this.trader.placeOrder(myOrder).then((order) => {
             // console.log('Live order post : ' + JSON.stringify(order));
@@ -139,7 +143,10 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
             productId: this.confService.configurationFile.application.product.name,
             time: new Date()
         };
+
         console.log('positionnement d un order limit a ' + priceP + ' pour ' + nbCoin + ' coins');
+        SlackService._instance.postMessage('positionnement d un order limit a ' + priceP + ' pour ' + nbCoin + ' coins');
+
         return this.trader.placeOrder(myOrder).then((order) => {
             order.price = new BigNumber(priceP.toFixed(10));
             return Promise.resolve(order);

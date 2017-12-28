@@ -9,6 +9,7 @@ import { getSubscribedFeeds } from 'gdax-trading-toolkit/build/src/factories/gda
 import { TendanceService } from './modules/TendanceService';
 import { GDAXCustomOrderHandleServiceSimu } from './modules/GDAXCustomOrderHandleServiceSimu';
 import { GDAXCustomOrderHandleInterface } from './modules/IGDAXCustomOrderHandleService';
+import { SlackService } from './services/SlackService';
 
 if (process.argv.length !== 4) {
     console.error('Please set the name of the application_XXX.yml file');
@@ -50,6 +51,7 @@ if (isModeSimu) {
 const gdaxLiveOrder = new GDAXLiveOrderBookHandleService();
 const gdaxTradeService = new GDAXTradeService();
 const tendanceService = new TendanceService();
+const slackService = new SlackService();
 
 // -----------------------------------------
 getSubscribedFeeds(options, products)
@@ -61,6 +63,7 @@ getSubscribedFeeds(options, products)
     gdaxCustomOrder.inject(options, confService, gdaxTradeService, feed, gdaxExchangeApi);
     gdaxLiveOrder.inject(options, confService, gdaxTradeService, tendanceService);
     gdaxTradeService.inject(options, confService, tendanceService, gdaxCustomOrder, gdaxAccount);
+    slackService.inject(confService);
 
 // init all modules
     gdaxAccount.init();
@@ -68,6 +71,9 @@ getSubscribedFeeds(options, products)
     gdaxCustomOrder.init();
     gdaxLiveOrder.init();
     gdaxTradeService.init();
+    slackService.init();
+
+    SlackService._instance.postMessage('Starting application for ' + confService.configurationFile.application.product.name);
 
     // redirect to liveOrderBook
     feed.pipe(gdaxLiveOrder.liveOrderBook);
