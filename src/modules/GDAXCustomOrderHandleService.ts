@@ -43,8 +43,8 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
     public init(): void {
         console.log('Init - GDAXCustomOrderHandleService');
         this.cancelAllOrders()
-            .then((a) => delay(3000))
-            .then((b) => this.loadFills())
+            .then(() => delay(3000))
+            .then(() => this.loadFills())
             .then((fills) => Promise.resolve(fills[0]))
             .then((fill) => {
                 if (fill.side === 'buy') {
@@ -88,7 +88,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
     public cancelAllOrders(): Promise<boolean> {
         console.log('called cancel all orders');
         return Promise.resolve(this.trader.checkState()
-            .then((value) => this.gdaxExchangeApi.loadAllOrders(this.confService.configurationFile.application.product.name))
+            .then(() => this.gdaxExchangeApi.loadAllOrders(this.confService.configurationFile.application.product.name))
             .then((orders) => {
                 orders.forEach((order) => {
                     this.cancelOrder(order.id).then((value) => console.log('successfully deleted'));

@@ -337,7 +337,7 @@ export class GDAXTradeService {
         // Si elles sont toutes baissière et que la dernière est une grosse chute > 2% (sur la minutes)
         // on positionne un stopOrder d'achat
         // et on suit la courbe baissière
-        const everyMinutesTendances = this.tendanceService.getLastEveryMinutesTendances(10);
+        const everyMinutesTendances = this.tendanceService.getLastEveryMinutesTendances(15);
         this.options.logger.log('info', 'Retrieve ' + everyMinutesTendances.length + ' tendances');
         this.tendanceAchatLog(everyMinutesTendances);
 
@@ -346,7 +346,7 @@ export class GDAXTradeService {
 
         while (everyMinutesTendances.length !== 0 && !lookingForBuy) {
             const tendance = everyMinutesTendances.shift();
-            if (tendance.evolPourcentage < 0.1) {
+            if (tendance.evolPourcentage < 0.3) {
                 // on cumule l'evolution
                 cumulEvolutionNegative += tendance.evolPourcentage;
             } else {
