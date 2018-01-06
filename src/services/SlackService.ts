@@ -6,10 +6,10 @@ import Response = request.Response;
 export class SlackService {
 
     static SLACK_API = 'https://slack.com/api/';
+    static _instance: SlackService;
 
     public options: GDAXFeedConfig;
     public confService: ConfService;
-    static _instance: SlackService;
 
     private token: string;
     private customerChannel: string;

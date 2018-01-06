@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "tsc -d -p .",
+    "build": "tsc --watch",
     "lint": "tslint -c tslint.json -p . -t stylish",
     "run_js": "node build/main.js",
     "run_ts_LTC": "ts-node src/main.ts application_LTC.yml no",
@@ -19,7 +19,7 @@
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
     "express": "~4.15.5",
-    "gdax-trading-toolkit": "0.1.29",
+    "gdax-trading-toolkit": "^0.2.1",
     "jade": "~1.11.0",
     "morgan": "~1.9.0",
     "nativescript-email": "^1.5.1",
