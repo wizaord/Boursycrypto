@@ -100,4 +100,3 @@ export interface Order {
     status: string;
     fee: BigJS;
 }
-

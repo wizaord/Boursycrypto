@@ -14,8 +14,8 @@ import { E_TRADEMODE, E_TRADESELLMODE } from './E_TRADEMODE';
 import { SlackService } from '../services/SlackService';
 
 export class GDAXTradeService {
-
     public static _instance: GDAXTradeService;
+
     private currentPrice: number;
     private lastOrder: Order;
     private options: GDAXFeedConfig;
@@ -24,14 +24,17 @@ export class GDAXTradeService {
     private stopOrderCurrentOrder: LiveOrder;
     private customOrder: GDAXCustomOrderHandleInterface;
     private accountService: GDAXAccountService;
-
     private traderMode: E_TRADEMODE;
 
     private pourcentBeforeStartVenteMode: number;
+
+    private pourcentBeforeStartAchatMode: number;
     private negatifWaitPourcent: number;
     private beneficeMinPoucent: number;
     private activateSecureVenteMode: boolean;
     private beneficeFollowPourcent: number;
+
+    private lastBuyMessageSend: Date;
 
     constructor() {
         console.log('Create - GDAXTradeService');
@@ -56,14 +59,13 @@ export class GDAXTradeService {
         this.activateSecureVenteMode = Boolean(this.confService.configurationFile.application.trader.vente.secureStopOrder.activate);
         this.beneficeMinPoucent = Number(this.confService.configurationFile.application.trader.vente.benefice.initialPourcent);
         this.beneficeFollowPourcent = Number(this.confService.configurationFile.application.trader.vente.benefice.followingPourcent);
-
+        this.pourcentBeforeStartAchatMode = Number(this.confService.configurationFile.application.trader.achat.pourcentageChuteCoursStopOrder);
 
         if (Boolean(this.confService.configurationFile.application.historique.logTendance)) {
             setInterval(getTendance, this.confService.configurationFile.application.historique.computeDelay);
         }
         setInterval(tradeManHoYeah, 10000);
     }
-
 
     /**
      * Algo mis en place.
@@ -190,8 +192,8 @@ export class GDAXTradeService {
         // si un stop order est deja present, il faut le supprimer
         if (this.stopOrderCurrentOrder !== undefined) {
             this.customOrder.cancelOrder(this.stopOrderCurrentOrder.id)
-                .then((a) => delay(1000))
-                .then((value) => {
+                .then(() => delay(1000))
+                .then(() => {
                     this.stopOrderCurrentOrder = undefined;
                     this.stopOrderCreate(price);
                 });
@@ -209,7 +211,6 @@ export class GDAXTradeService {
             logError(reason);
         });
     }
-
 
     /**
      * Fonction qui permet de determiner dans quel mode de fonctionnement on se trouve
@@ -336,6 +337,42 @@ export class GDAXTradeService {
         const everyMinutesTendances = this.tendanceService.getLastEveryMinutesTendances(10);
         this.options.logger.log('info', 'Retrieve ' + everyMinutesTendances.length + ' tendances');
         this.tendanceAchatLog(everyMinutesTendances);
+
+        let lookingForBuy = false;
+        let cumulEvolutionNegative = 0;
+
+        while (everyMinutesTendances.length !== 0 && !lookingForBuy) {
+            const tendance = everyMinutesTendances.shift();
+            if (tendance.evolPourcentage < 0.1) {
+                // on cumule l'evolution
+                cumulEvolutionNegative += tendance.evolPourcentage;
+            } else {
+                // on arrete tout
+                break;
+            }
+
+            // si l'evolution est negative à XX pourcent on remonte une alerte
+            if (cumulEvolutionNegative <= this.pourcentBeforeStartAchatMode) {
+                lookingForBuy = true;
+            }
+        }
+
+        // reinit du message si plus de 10 minutes
+        if (this.lastBuyMessageSend !== undefined) {
+            const dateInMs = this.lastBuyMessageSend.getTime();
+            const currentDate = new Date();
+            const currentDateInMs = currentDate.getTime();
+            // si le temps est superieur a 10 minutes, on reinitialise le tout
+            if ((currentDateInMs - dateInMs) > 600000) {
+                this.lastBuyMessageSend = undefined;
+            }
+        }
+
+        if (lookingForBuy && this.lastBuyMessageSend === undefined) {
+            this.lastBuyMessageSend = new Date();
+            SlackService._instance.postMessage('CHECK FOR ACHAT - Baisse du cours de ' + cumulEvolutionNegative.toFixed(2));
+        }
+
     }
 
     private tendanceAchatLog(tendances: Tendance[]): void {
