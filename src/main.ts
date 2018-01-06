@@ -1,6 +1,6 @@
 import * as GTT from 'gdax-trading-toolkit';
 import { GDAX_API_URL, GDAX_WS_FEED, GDAXExchangeAPI, GDAXFeed, GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
-import { ConfService } from './services/confService';
+import { ConfService } from './services/ConfService';
 import { GDAXAccountService } from './modules/GDAXAccountService';
 import { GDAXCustomOrderHandleService } from './modules/GDAXCustomOrderHandleService';
 import { GDAXLiveOrderBookHandleService } from './modules/GDAXLiveOrderBookHandleService';
