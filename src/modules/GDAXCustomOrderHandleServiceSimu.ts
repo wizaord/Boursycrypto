@@ -48,7 +48,6 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
                 }
             });
 
-
         this.trader.on('Trader.order-placed', (msg: LiveOrder) => {
             this.options.logger.log('info', 'Order placed', JSON.stringify(msg));
         });

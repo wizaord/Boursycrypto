@@ -61,13 +61,11 @@ export class GDAXTradeService {
         this.beneficeFollowPourcent = Number(this.confService.configurationFile.application.trader.vente.benefice.followingPourcent);
         this.pourcentBeforeStartAchatMode = Number(this.confService.configurationFile.application.trader.achat.pourcentageChuteCoursStopOrder);
 
-
         if (Boolean(this.confService.configurationFile.application.historique.logTendance)) {
             setInterval(getTendance, this.confService.configurationFile.application.historique.computeDelay);
         }
         setInterval(tradeManHoYeah, 10000);
     }
-
 
     /**
      * Algo mis en place.
@@ -213,7 +211,6 @@ export class GDAXTradeService {
             logError(reason);
         });
     }
-
 
     /**
      * Fonction qui permet de determiner dans quel mode de fonctionnement on se trouve
