@@ -7,6 +7,7 @@ import { LiveOrder } from 'gdax-trading-toolkit/build/src/lib';
 import { printSeparator } from 'gdax-trading-toolkit/build/src/utils';
 import * as BigNumber from 'bignumber.js';
 import { GDAXCustomOrderHandleInterface } from './IGDAXCustomOrderHandleService';
+import { SlackService } from '../services/SlackService';
 
 export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleInterface {
     trader: Trader;
@@ -64,6 +65,7 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
         });
         this.trader.on('Trader.external-order-placement', (msg: MyOrderPlacedMessage) => {
             this.options.logger.log('info', 'orders manually placed', JSON.stringify(msg));
+            SlackService._instance.postMessage('Order manually placed');
         });
 
         this.trader.on('error', (err: Error) => {

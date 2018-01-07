@@ -1,6 +1,5 @@
 # Liste des TODO à faire
 
-- Revoir le mode SIMU (juste afficher le cours)
-- Pouvoir mettre des limites aux ordres de vente
-- Pouvoir passer des ordres d'achat
-- Pouvoir mettre une limite aux ordres d'achat
+- supprimer le mode SIMU. Ne rien faire si mode Simu activé - supprimer la seconde classe
+- mettre en place un système de log style logback
+- améliorer le mode d'achat : faire baisse sur 10 minutes sinon étudier pendant 1h

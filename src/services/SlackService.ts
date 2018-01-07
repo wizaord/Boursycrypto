@@ -31,14 +31,14 @@ export class SlackService {
     }
 
     public postMessage(message: string): void {
-        this.sendMessage('chat.postMessage', this.customerChannel, message).then((response) => {
-            console.log(JSON.stringify(response));
+        this.sendMessage('chat.postMessage', this.customerChannel, message).then(() => {
+            // console.log(JSON.stringify(response));
         });
     }
 
     private sendMessage(uri: string, channel: string, message: string): Promise<Response> {
         const msgWithPrefixe = `${this.confService.configurationFile.application.product.type}|${message}`;
-        const fullUri = `${uri}?token=${SlackService._instance.token}&channel=${channel}&text=${msgWithPrefixe}&pretty=1`
+        const fullUri = `${uri}?token=${SlackService._instance.token}&channel=${channel}&text=${msgWithPrefixe}&pretty=1`;
         return request.post(SlackService.SLACK_API + fullUri)
             // .set(headers)
             .send('');

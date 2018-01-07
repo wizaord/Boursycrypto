@@ -90,7 +90,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
         return Promise.resolve(this.trader.checkState()
             .then(() => this.gdaxExchangeApi.loadAllOrders(this.confService.configurationFile.application.product.name))
             .then((orders) => {
-                orders.forEach((order) => {
+                orders.forEach((order: LiveOrder) => {
                     this.cancelOrder(order.id).then((value) => console.log('successfully deleted'));
                 });
                 return true;
@@ -108,8 +108,8 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
 
     public placeStopSellOrder(priceP: number, nbCoin: number): Promise<LiveOrder> {
         const myOrder: PlaceOrderMessage = {
-            type: 'placeOrder',
             orderType: 'stop',
+            type: 'placeOrder',
             side: 'sell',
             productId: this.confService.configurationFile.application.product.name,
             price: priceP.toFixed(2),
@@ -178,7 +178,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
                     };
                     return customFill;
                 });
-        }).catch((reason) => {
+        }).catch((reason: any) => {
             logError(reason);
             return Promise.resolve(null);
         }));
