@@ -126,6 +126,11 @@ export class GDAXTradeService {
         this.options.logger.log('info', message);
     }
 
+    public notifyStopOrder(order: LiveOrder) {
+        console.log('Notification d un stopOrder existant a ' + Number(order.price).toFixed(2));
+        this.stopOrderCurrentOrder = order;
+    }
+
     public notifyOrderFinished(order: TradeExecutedMessage) {
         if (order.side === 'buy') {
             console.log('New order BUY - passage en mode VENTE');

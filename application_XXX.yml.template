@@ -9,6 +9,8 @@ application:
   trader:
     modeVisualisation: true
     vente:
+      start:
+        cleanCurrentOrder: false
       secureStopOrder:
         activate: true
         pourcent: 2.5

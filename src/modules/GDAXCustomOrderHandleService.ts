@@ -1,4 +1,4 @@
-import { Fill, GDAXFill, Order } from '../model/fill';
+import { Fill, GDAXFill, GDAXOrder, Order } from '../model/fill';
 import { GDAXExchangeAPI, GDAXFeed, GDAXFeedConfig } from 'gdax-trading-toolkit/build/src/exchanges';
 import { ConfService } from '../services/ConfService';
 import { GDAXTradeService } from './GDAXTradeService';
@@ -16,10 +16,12 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
     private options: GDAXFeedConfig;
     private confService: ConfService;
     private gdaxTradeService: GDAXTradeService;
+
     constructor() {
         console.log('Create - GDAXCustomOrderHandleService');
 
     }
+
     public inject(optionsP: GDAXFeedConfig, confService: ConfService, gdaxTradeService: GDAXTradeService, feed: GDAXFeed, gdaxExchangeApi: GDAXExchangeAPI): void {
         console.log('Inject - GDAXCustomOrderHandleService');
         this.options = optionsP;
@@ -42,7 +44,29 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
 
     public init(): void {
         console.log('Init - GDAXCustomOrderHandleService');
-        this.cancelAllOrders()
+        this.loadOrders()
+            .then((orders: GDAXOrder[]) => {
+                const cleanPreviousOrder = Boolean(this.confService.configurationFile.application.trader.vente.start.cleanCurrentOrder);
+                // si on est en mode delete old placeOrder, on supprime l'ancien stop.
+                // sinon on le recupere
+                if (cleanPreviousOrder) {
+                    return this.cancelAllOrders();
+                } else if (orders !== undefined && orders.length !== 0) {
+                    const order = orders[0];
+                    const stopOrder: LiveOrder = {
+                        id: order.id,
+                        price: order.price,
+                        productId: order.product_id,
+                        side: order.side,
+                        size: order.size,
+                        status: order.status,
+                        time: order.create_at,
+                        extra: null
+                    };
+                    this.gdaxTradeService.notifyStopOrder(stopOrder);
+                }
+                return Promise.resolve(null);
+            })
             .then(() => delay(3000))
             .then(() => this.loadFills())
             .then((fills) => Promise.resolve(fills[0]))
@@ -181,6 +205,13 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
         }).catch((reason: any) => {
             logError(reason);
             return Promise.resolve(null);
+        }));
+    }
+
+    private loadOrders(): Promise<GDAXOrder[]> {
+        const apiCall = this.gdaxExchangeApi.authCall('GET', `/orders`, {});
+        return Promise.resolve(this.gdaxExchangeApi.handleResponse<GDAXOrder[]>(apiCall, null).then((orders: GDAXOrder[]) => {
+            return orders;
         }));
     }
 
