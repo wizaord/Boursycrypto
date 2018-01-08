@@ -50,7 +50,6 @@ export class GDAXAccountService {
             return true;
         })).catch((reason) => {
             console.log('Error while get the account balance');
-            console.log(JSON.stringify(reason));
             logError(reason);
             return Promise.reject(reason);
         });

@@ -127,7 +127,6 @@ export class GDAXTradeService {
     }
 
     public notifyOrderFinished(order: TradeExecutedMessage) {
-        // TODO : recevoir ici l'order et voir ce qu'on a gagné / perdu
         if (order.side === 'buy') {
             console.log('New order BUY - passage en mode VENTE');
             this.customOrder.getLastBuyFill()
@@ -136,7 +135,7 @@ export class GDAXTradeService {
 
         if (order.side === 'sell') {
             const balance = this.getBalance(Number(order.price));
-            const messageStr = 'ORDER PASSED => gain/perte ' + balance.toFixed(2) + ' evol: ' + MathUtils.calculatePourcentDifference(Number(order.price), Number(this.lastOrder.price));
+            const messageStr = 'ORDER PASSED => price: ' + order.price + ' - gain/perte ' + balance.toFixed(2) + ' evol: ' + MathUtils.calculatePourcentDifference(Number(order.price), Number(this.lastOrder.price));
 
             this.options.logger.log('info', messageStr);
             SlackService._instance.postMessage(messageStr);
