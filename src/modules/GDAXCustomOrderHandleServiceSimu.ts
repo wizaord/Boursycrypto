@@ -20,8 +20,8 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
 
     }
     public inject(optionsP: GDAXFeedConfig, confService: ConfService, gdaxTradeService: GDAXTradeService, feed: GDAXFeed, gdaxExchangeApi: GDAXExchangeAPI): void {
-        console.log('Inject - GDAXCustomOrderHandleServiceSimu');
         this.options = optionsP;
+        this.options.logger.log('debug', 'Inject - GDAXCustomOrderHandleServiceSimu');
         this.confService = confService;
         this.gdaxExchangeApi = gdaxExchangeApi;
         this.gdaxTradeService = gdaxTradeService;
@@ -38,7 +38,7 @@ export class GDAXCustomOrderHandleServiceSimu implements GDAXCustomOrderHandleIn
     }
 
     public init(): void {
-        console.log('Init - GDAXCustomOrderHandleService');
+        this.options.logger.log('debug', 'Init - GDAXCustomOrderHandleService');
         this.loadFills()
             .then((fills) => Promise.resolve(fills[0]))
             .then((fill) => {

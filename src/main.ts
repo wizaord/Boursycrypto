@@ -24,7 +24,7 @@ console.log('#############################################################');
 
 // Init objects
 const confService = new ConfService(isModeSimu, applicationFileName);
-const logger = GTT.utils.ConsoleLoggerFactory();
+const logger = GTT.utils.ConsoleLoggerFactory({ level: confService.configurationFile.application.logger.level });
 const options: GDAXFeedConfig = {
     logger: logger,
     auth: {

@@ -42,16 +42,16 @@ export class GDAXTradeService {
     }
 
     public inject(options: GDAXFeedConfig, confService: ConfService, tendanceService: TendanceService, customOrder: GDAXCustomOrderHandleInterface, accountService: GDAXAccountService): void {
-        console.log('Inject - GDAXTradeService');
         this.accountService = accountService;
         this.tendanceService = tendanceService;
         this.options = options;
         this.confService = confService;
         this.customOrder = customOrder;
+        this.options.logger.log('debug', 'Inject - GDAXTradeService');
     }
 
     public init(): void {
-        console.log('Init - GDAXTradeService');
+        this.options.logger.log('debug', 'Init - GDAXTradeService');
         this.traderMode = E_TRADEMODE.NOORDER;
         this.currentPrice = 0;
         this.negatifWaitPourcent = Number(this.confService.configurationFile.application.trader.vente.secureStopOrder.pourcent);
@@ -97,7 +97,7 @@ export class GDAXTradeService {
             case E_TRADEMODE.VENTE:
                 this.logVenteEvolution();
                 if (! Boolean(this.confService.configurationFile.application.trader.modeVisualisation)) {
-                    this.options.logger.log('info', 'MODE VENTE');
+                    this.options.logger.log('debug', 'MODE VENTE');
                     this.doTradingSell();
                 }
                 break;
@@ -127,13 +127,13 @@ export class GDAXTradeService {
     }
 
     public notifyStopOrder(order: LiveOrder) {
-        console.log('Notification d un stopOrder existant a ' + Number(order.price).toFixed(2));
+        this.options.logger.log('info', 'Notification d un stopOrder existant a ' + Number(order.price).toFixed(2));
         this.stopOrderCurrentOrder = order;
     }
 
     public notifyOrderFinished(order: TradeExecutedMessage) {
         if (order.side === 'buy') {
-            console.log('New order BUY - passage en mode VENTE');
+            this.options.logger.log('info', 'New order BUY - passage en mode VENTE');
             this.customOrder.getLastBuyFill()
                 .then((newOrder) => this.notifyNewOrder(newOrder));
         }
@@ -154,7 +154,7 @@ export class GDAXTradeService {
 
     public tendanceLog(): void {
         if (this.currentPrice === 0) {
-            console.log('Toujours pas recu de trade. Pas de possibilite d afficher la tendance');
+            this.options.logger.log('info', 'Toujours pas recu de trade. Pas de possibilite d afficher la tendance');
             return;
         }
         // calcul des tendances
@@ -163,14 +163,14 @@ export class GDAXTradeService {
         const tendance30min = this.tendanceService.getLast30MinutesTendances();
         const tendance60min = this.tendanceService.getLast60MinutesTendances();
 
-        console.log(printSeparator());
-        console.log('Date : ' + new Date());
-        console.log('Cours now : ' + JSON.stringify(this.tendanceService.computeLst.last()));
-        console.log('Tendance 2 minutes  : ' + this.convertTendanceInStr(tendance2min));
-        console.log('Tendance 10 minutes : ' + this.convertTendanceInStr(tendance10min));
-        console.log('Tendance 30 minutes : ' + this.convertTendanceInStr(tendance30min));
-        console.log('Tendance 60 minutes : ' + this.convertTendanceInStr(tendance60min));
-        console.log(printSeparator());
+        this.options.logger.log('debug', printSeparator());
+        this.options.logger.log('debug', 'Date : ' + new Date());
+        this.options.logger.log('debug', 'Cours now : ' + JSON.stringify(this.tendanceService.computeLst.last()));
+        this.options.logger.log('debug', 'Tendance 2 minutes  : ' + this.convertTendanceInStr(tendance2min));
+        this.options.logger.log('debug', 'Tendance 10 minutes : ' + this.convertTendanceInStr(tendance10min));
+        this.options.logger.log('debug', 'Tendance 30 minutes : ' + this.convertTendanceInStr(tendance30min));
+        this.options.logger.log('debug', 'Tendance 60 minutes : ' + this.convertTendanceInStr(tendance60min));
+        this.options.logger.log('debug', printSeparator());
     }
 
     public getBalance(currentPrice: number): number {
@@ -210,7 +210,8 @@ export class GDAXTradeService {
         this.customOrder.placeStopSellOrder(price, this.accountService.btc).then((liveOrder) => {
             this.stopOrderCurrentOrder = liveOrder;
         }).catch((reason) => {
-            console.log('impossible de creer le liveOrder... Bizarre ' + JSON.stringify(reason));
+            this.options.logger.log('warn', 'impossible de creer le liveOrder... Bizarre ' + JSON.stringify(reason));
+            this.options.logger.error(reason);
             this.stopOrderCurrentOrder = undefined;
             logError(reason);
         });
@@ -256,7 +257,7 @@ export class GDAXTradeService {
         switch (sellMode) {
             case E_TRADESELLMODE.WAITING_FOR_BENEFICE:
                 const coursRequisPourBenefice = MathUtils.calculateAddPourcent(Number(this.lastOrder.price), this.pourcentBeforeStartVenteMode);
-                this.options.logger.log('info', 'MODE VENTE - Not enougth benef. Waiting benefice to : ' + coursRequisPourBenefice);
+                this.options.logger.log('debug', 'MODE VENTE - Not enougth benef. Waiting benefice to : ' + coursRequisPourBenefice);
                 break;
             case E_TRADESELLMODE.BENEFICE:
                 this.options.logger.log('info', 'MODE VENTE - Benefice OK');
@@ -339,7 +340,7 @@ export class GDAXTradeService {
         // on positionne un stopOrder d'achat
         // et on suit la courbe baissière
         const everyMinutesTendances = this.tendanceService.getLastEveryMinutesTendances(15);
-        this.options.logger.log('info', 'Retrieve ' + everyMinutesTendances.length + ' tendances');
+        this.options.logger.log('debug', 'Retrieve ' + everyMinutesTendances.length + ' tendances');
         this.tendanceAchatLog(everyMinutesTendances);
 
         let lookingForBuy = false;
@@ -381,7 +382,8 @@ export class GDAXTradeService {
 
     private tendanceAchatLog(tendances: Tendance[]): void {
         tendances.forEach((tendance) => {
-            console.log('TENDANCE - Date : ' + tendance.endDate.getMinutes() + ' average: ' + tendance.averagePrice.toFixed(2) + ' prix: ' + tendance.evolPrice.toFixed(2) + ' %:' + tendance.evolPourcentage.toFixed(2));
+            const message = 'TENDANCE - Date : ' + tendance.endDate.getMinutes() + ' average: ' + tendance.averagePrice.toFixed(2) + ' prix: ' + tendance.evolPrice.toFixed(2) + ' %:' + tendance.evolPourcentage.toFixed(2);
+            this.options.logger.log('debug', message);
         });
     }
 }

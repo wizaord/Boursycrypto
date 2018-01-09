@@ -6,6 +6,8 @@ application:
   product:
     name: LTC-EUR
     type: LTC
+  logger:
+    level: info
   trader:
     modeVisualisation: true
     vente:

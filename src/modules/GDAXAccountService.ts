@@ -19,15 +19,15 @@ export class GDAXAccountService {
     }
 
     public inject(options: GDAXFeedConfig, confService: ConfService, gdaxExchangeApi: GDAXExchangeAPI): void {
-        console.log('Inject - GDAXAccountService');
         this.options = options;
+        this.options.logger.log('debug', 'Inject - GDAXAccountService');
         this.confService = confService;
         this.gdaxExchangeApi = gdaxExchangeApi;
 
     }
 
     public init(): void {
-        console.log('Init - GDAXAccountService');
+        this.options.logger.log('debug', 'Init - GDAXAccountService');
         this.loadBalance();
     }
 
@@ -39,7 +39,7 @@ export class GDAXAccountService {
     }
 
     public loadBalance(): Promise<boolean> {
-        console.log('Retrieving account balances..');
+        this.options.logger.log('debug', 'Retrieving account balances..');
         return Promise.resolve(this.gdaxExchangeApi.loadBalances().then((balances: Balances) => {
             for (const profile in balances) {
                 const account = balances[profile];
@@ -49,7 +49,8 @@ export class GDAXAccountService {
             this.logBalance();
             return true;
         })).catch((reason) => {
-            console.log('Error while get the account balance');
+            this.options.logger.log('error', 'Error while get the account balance');
+            this.options.logger.error(reason);
             logError(reason);
             return Promise.reject(reason);
         });
@@ -61,11 +62,11 @@ export class GDAXAccountService {
     }
 
     public logBalance(): void {
-        console.log(printSeparator());
-        console.log('Balance successfully loaded : ');
-        console.log(`Money: ${padfloat(this._money, 8, 4)} €`);
-        console.log(`BTC:   ${padfloat(this._btc, 8, 8)} BTC`);
-        console.log(printSeparator());
+        this.options.logger.log('debug', printSeparator());
+        this.options.logger.log('debug', 'Balance successfully loaded : ');
+        this.options.logger.log('debug', `Money: ${padfloat(this._money, 8, 4)} €`);
+        this.options.logger.log('debug', `BTC:   ${padfloat(this._btc, 8, 8)} BTC`);
+        this.options.logger.log('debug', printSeparator());
     }
 }
 

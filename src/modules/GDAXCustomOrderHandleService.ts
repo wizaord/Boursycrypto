@@ -23,8 +23,8 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
     }
 
     public inject(optionsP: GDAXFeedConfig, confService: ConfService, gdaxTradeService: GDAXTradeService, feed: GDAXFeed, gdaxExchangeApi: GDAXExchangeAPI): void {
-        console.log('Inject - GDAXCustomOrderHandleService');
         this.options = optionsP;
+        this.options.logger.log('debug', 'Inject - GDAXCustomOrderHandleService');
         this.confService = confService;
         this.gdaxExchangeApi = gdaxExchangeApi;
         this.gdaxTradeService = gdaxTradeService;
@@ -43,7 +43,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
     }
 
     public init(): void {
-        console.log('Init - GDAXCustomOrderHandleService');
+        this.options.logger.log('debug', 'Init - GDAXCustomOrderHandleService');
         this.loadOrders()
             .then((orders: GDAXOrder[]) => {
                 const cleanPreviousOrder = Boolean(this.confService.configurationFile.application.trader.vente.start.cleanCurrentOrder);
@@ -73,7 +73,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
             .then((fill) => {
                 if (fill.side === 'buy') {
                     // le dernier point est un achat. On envoie donc comme s'il venait de passer
-                    console.log('INIT - Le dernier ordre est une commande. Prise en compte par le programme');
+                    this.options.logger.log('info', 'INIT - Le dernier ordre est une commande. Prise en compte par le programme');
                     this.gdaxTradeService.notifyNewOrder(this.mapFillInOrder(fill));
                 }
             });
@@ -110,7 +110,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
     }
 
     public cancelAllOrders(): Promise<boolean> {
-        console.log('called cancel all orders');
+        this.options.logger.log('debug', 'called cancel all orders');
         return Promise.resolve(this.trader.checkState()
             .then(() => this.gdaxExchangeApi.loadAllOrders(this.confService.configurationFile.application.product.name))
             .then((orders) => {
@@ -125,7 +125,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
 
     public cancelOrder(orderId: string): Promise<boolean> {
         return Promise.resolve(this.gdaxExchangeApi.cancelOrder(orderId).then((result: string) => {
-            console.log('Order with ID : ' + result + ' has been successfully cancelled');
+            this.options.logger.log('info', 'Order with ID : ' + result + ' has been successfully cancelled');
             return true;
         }).catch(logError));
     }
@@ -142,7 +142,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
             time: new Date()
         };
 
-        console.log('positionnement d un stopOrder a ' + priceP + ' pour ' + nbCoin + ' coins');
+        this.options.logger.log('info', 'positionnement d un stopOrder a ' + priceP + ' pour ' + nbCoin + ' coins');
         SlackService._instance.postMessage('positionnement d un stopOrder a ' + priceP + ' pour ' + nbCoin + ' coins');
 
         // console.log(JSON.stringify(myOrder));
@@ -151,7 +151,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
             order.price = new BigNumber(priceP.toFixed(10));
             return Promise.resolve(order);
         }).catch((reason) => {
-            console.log('Unable to place an order');
+            this.options.logger.error(reason);
             logError(reason);
             return Promise.reject(reason);
         });
@@ -168,14 +168,15 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
             time: new Date()
         };
 
-        console.log('positionnement d un order limit a ' + priceP + ' pour ' + nbCoin + ' coins');
+        this.options.logger.log('info', 'positionnement d un order limit a ' + priceP + ' pour ' + nbCoin + ' coins');
         SlackService._instance.postMessage('positionnement d un order limit a ' + priceP + ' pour ' + nbCoin + ' coins');
 
         return this.trader.placeOrder(myOrder).then((order) => {
             order.price = new BigNumber(priceP.toFixed(10));
             return Promise.resolve(order);
         }).catch((reason) => {
-            console.log('Unable to place an order limit');
+            this.options.logger.log('error', 'Unable to place an order limit');
+            this.options.logger.error(reason);
             logError(reason);
             return Promise.reject(reason);
         });
@@ -211,7 +212,7 @@ export class GDAXCustomOrderHandleService implements GDAXCustomOrderHandleInterf
     private loadOrders(): Promise<GDAXOrder[]> {
         const apiCall = this.gdaxExchangeApi.authCall('GET', `/orders`, {});
         return Promise.resolve(this.gdaxExchangeApi.handleResponse<GDAXOrder[]>(apiCall, null).then((orders: GDAXOrder[]) => {
-            return orders;
+            return orders.filter((o) => o.product_id === this.confService.configurationFile.application.product.name);
         }));
     }
 
